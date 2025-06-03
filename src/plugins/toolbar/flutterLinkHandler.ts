@@ -19,23 +19,19 @@ export function getSelectedTextInfo(editor: any): {
   url: string;
   text: string;
   isLink: boolean;
-  anchorOffset: number;
-  focusOffset: number;
 } {
   let selectedText = "";
   let linkUrl = "";
   let isLink = false;
-  let anchorOffset = 0;
-  let focusOffset = 0;
 
   editor.getEditorState().read(() => {
     const selection = $getSelection();
     if ($isRangeSelection(selection)) {
       selectedText = selection.getTextContent();
-      anchorOffset = selection.anchor.offset;
-      focusOffset = selection.focus.offset;
+
       const node = getSelectedNode(selection);
       const linkNode = $isLinkNode(node) ? node : $isLinkNode(node.getParent()) ? node.getParent() : null;
+
       if (linkNode) {
         isLink = true;
         linkUrl = linkNode.getURL?.() ?? "";
@@ -43,7 +39,7 @@ export function getSelectedTextInfo(editor: any): {
     }
   });
 
-  return { url: linkUrl, text: selectedText, isLink, anchorOffset, focusOffset };
+  return { url: linkUrl, text: selectedText, isLink };
 }
 
 // Send extracted info to Flutter via MarkdownChannel

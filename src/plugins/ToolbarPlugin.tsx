@@ -20,6 +20,7 @@ import { $isLinkNode, TOGGLE_LINK_COMMAND } from "@lexical/link";
 import { $wrapNodes, $isAtNodeEnd, $trimTextContentFromAnchor } from "@lexical/selection";
 import { $getNearestNodeOfType, mergeRegister } from "@lexical/utils";
 import { INSERT_ORDERED_LIST_COMMAND, INSERT_UNORDERED_LIST_COMMAND, INSERT_CHECK_LIST_COMMAND, $isListNode, ListNode } from "@lexical/list";
+import { createPortal } from "react-dom";
 import { $createHeadingNode, $createQuoteNode, $isHeadingNode } from "@lexical/rich-text";
 import { $createCodeNode, $isCodeNode } from "@lexical/code";
 import { $convertFromMarkdownString, $convertToMarkdownString } from "@lexical/markdown";
@@ -27,9 +28,8 @@ import { PLAYGROUND_TRANSFORMERS } from "./MarkdownTransformers.tsx";
 import { useWebSocket } from "../context/WebSocketContext.tsx";
 import { handleAlignment } from "./toolbar/alignmentForEditNote.ts";
 import { LowPriority } from "./toolbar/editorPriorities.ts";
+import FloatingLinkEditor from "./toolbar/FloatingLinkEditor.tsx";
 import { addAlignmentMarkersToMarkdown } from "./toolbar/markdownAlignmentHelpers.ts";
-import { getSelectedTextInfo, sendTextInfoToFlutter } from "./toolbar/flutterLinkHandler.ts";
-import { CustomLinkDecorator } from "./toolbar/CustomLinkDecorator.jsx";
 
 declare global {
   interface Window {
@@ -199,30 +199,12 @@ export default function ToolbarPlugin() {
 
   // #################
   const insertLink = useCallback(() => {
-    const result = getSelectedTextInfo(editor); // works for both link & non-link
-
-    console.log("Insert link command triggered", result);
-    sendTextInfoToFlutter(result);
-  }, [editor]);
-
-  // to add link after receiving from flutter
-
-  function addNewLinkFromFlutter(data: any) {
-    const url = data.url;
-    const text = data.text;
-    const anchorOffset = data.anchorOffset;
-    const focusOffset = data.focusOffset;
-
-    editor.update(() => {
-      const selection = $getSelection();
-      if ($isRangeSelection(selection)) {
-        // Find the text in the editor and select it
-        // (If you have node keys, use them for more accuracy)
-        selection.setTextNodeRange(selection.anchor.getNode(), anchorOffset, selection.focus.getNode(), focusOffset);
-        editor.dispatchCommand(TOGGLE_LINK_COMMAND, url);
-      }
-    });
-  }
+    if (!isLink) {
+      editor.dispatchCommand(TOGGLE_LINK_COMMAND, "https://");
+    } else {
+      editor.dispatchCommand(TOGGLE_LINK_COMMAND, null);
+    }
+  }, [editor, isLink]);
 
   // #################
 
@@ -458,9 +440,6 @@ export default function ToolbarPlugin() {
             case "link":
               insertLink();
               break;
-            case "addLink":
-              addNewLinkFromFlutter(command);
-              break;
             case "bullet":
               editor.dispatchCommand(INSERT_UNORDERED_LIST_COMMAND, undefined);
               break;
@@ -580,25 +559,9 @@ export default function ToolbarPlugin() {
 
   // end to show markdown to text for edit note
 
-  // ############## test links ################
-  // ############## test links ################
-
   return (
     <div className="toolbar" ref={toolbarRef}>
-      <button onClick={insertLink} className={"toolbar-item spaced " + (isLink ? "active" : "")} aria-label="Insert Link">
-        <i className="format link" />
-      </button>
-
-      {/* <>
-        {isLink &&
-          (() => {
-            const { url, text } = getSelectedLinkInfo(editor);
-            sendLinkInfoToFlutter(url, text);
-            return null;
-          })()}
-      </> */}
-
-      {/* <>
+      <>
         {isLink &&
           createPortal(
             <FloatingLinkEditor
@@ -620,7 +583,7 @@ export default function ToolbarPlugin() {
             />,
             document.body
           )}
-      </> */}
+      </>
     </div>
   );
 }
