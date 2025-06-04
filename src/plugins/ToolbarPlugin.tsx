@@ -15,8 +15,10 @@ import {
   RootNode,
   $getRoot,
   $isTextNode,
+  $setSelection,
+  $insertNodes,
 } from "lexical";
-import { $isLinkNode, TOGGLE_LINK_COMMAND } from "@lexical/link";
+import { $createLinkNode, $isLinkNode, LinkNode, TOGGLE_LINK_COMMAND } from "@lexical/link";
 import { $wrapNodes, $isAtNodeEnd, $trimTextContentFromAnchor } from "@lexical/selection";
 import { $getNearestNodeOfType, mergeRegister } from "@lexical/utils";
 import { INSERT_ORDERED_LIST_COMMAND, INSERT_UNORDERED_LIST_COMMAND, INSERT_CHECK_LIST_COMMAND, $isListNode, ListNode } from "@lexical/list";
@@ -30,6 +32,7 @@ import { handleAlignment } from "./toolbar/alignmentForEditNote.ts";
 import { LowPriority } from "./toolbar/editorPriorities.ts";
 import FloatingLinkEditor from "./toolbar/FloatingLinkEditor.tsx";
 import { addAlignmentMarkersToMarkdown } from "./toolbar/markdownAlignmentHelpers.ts";
+import { handleLinkFlow } from "./toolbar/flutterLinkHandler.ts";
 
 declare global {
   interface Window {
@@ -126,9 +129,6 @@ export default function ToolbarPlugin() {
       const elementDOM = editor.getElementByKey(elementKey);
       if (elementDOM !== null) {
         if ($isListNode(element)) {
-          // const parentList = $getNearestNodeOfType(anchorNode, ListNode);
-          // const type = parentList ? parentList.getTag() : element.getTag();
-
           blockTypeRef.current = listType || "paragraph";
         } else {
           const type = $isHeadingNode(element) ? element.getTag() : element.getType();
@@ -205,6 +205,76 @@ export default function ToolbarPlugin() {
       editor.dispatchCommand(TOGGLE_LINK_COMMAND, null);
     }
   }, [editor, isLink]);
+
+  // const updateLink = useCallback(
+  //   (url: string, text: string) => {
+  //     // Update the currently selected link with a new URL
+  //     editor.dispatchCommand(TOGGLE_LINK_COMMAND, url);
+  //   },
+  //   [editor]
+  // );
+
+  const updateLink = useCallback(
+    (url: string, text: string) => {
+      editor.update(() => {
+        const selection = $getSelection();
+
+        if ($isRangeSelection(selection)) {
+          // If selection is inside a link, unwrap it first
+          const nodes = selection.getNodes();
+          nodes.forEach((node) => {
+            const parent = node.getParent();
+            if ($isLinkNode(parent)) {
+              parent.replace(node);
+            }
+          });
+
+          // Optionally replace selected text with provided `text`
+          if (text.trim()) {
+            selection.insertText(text.trim());
+          }
+
+          // Wrap the current selection with a new link
+          editor.dispatchCommand(TOGGLE_LINK_COMMAND, url);
+        }
+      });
+    },
+    [editor]
+  );
+
+  const removeLink = useCallback(() => {
+    // Remove the link from the current selection
+    editor.dispatchCommand(TOGGLE_LINK_COMMAND, null);
+  }, [editor]);
+
+  const onCloseLink = useCallback(() => {
+    if (!window.MarkdownChannel) {
+      console.warn("MarkdownChannel not available on window");
+      return;
+    }
+
+    const message = {
+      type: "link_selected",
+      isLinkTrue: false,
+    };
+
+    console.log("Sending message:", JSON.stringify(message));
+    window.MarkdownChannel.postMessage(JSON.stringify(message));
+
+    // Optionally, blur the editor or close any link popups
+    editor.update(() => {
+      const selection = $getSelection();
+      if ($isRangeSelection(selection)) {
+        const node = getSelectedNode(selection);
+        // Try parent first, then node itself
+        const linkNode = $isLinkNode(node.getParent()) ? node.getParent() : $isLinkNode(node) ? node : null;
+        if (linkNode) {
+          // Select the end of the link node
+          linkNode.selectEnd();
+        }
+      }
+    });
+  }, [editor]);
 
   // #################
 
@@ -437,8 +507,16 @@ export default function ToolbarPlugin() {
                 }
               });
               break;
-            case "link":
+            case "insertLink":
               insertLink();
+              break;
+            case "updateLink":
+              updateLink(command.url, command.text);
+              break;
+            case "removeLink":
+              break;
+            case "onCloseLink":
+              onCloseLink();
               break;
             case "bullet":
               editor.dispatchCommand(INSERT_UNORDERED_LIST_COMMAND, undefined);
@@ -559,10 +637,24 @@ export default function ToolbarPlugin() {
 
   // end to show markdown to text for edit note
 
+  // ##############################################################
+
+  useEffect(() => {
+    if (isLink) {
+      console.log("Link is true, handling link flow", isLink);
+      handleLinkFlow(editor);
+    }
+  }, [isLink]);
+
+  // ##############################################################
+
   return (
     <div className="toolbar" ref={toolbarRef}>
       <>
-        {isLink &&
+        <button onClick={insertLink} className={"toolbar-item spaced " + (isLink ? "active" : "")} aria-label="Insert Link">
+          <i className="format link" />
+        </button>
+        {/* {isLink &&
           createPortal(
             <FloatingLinkEditor
               editor={editor}
@@ -582,7 +674,7 @@ export default function ToolbarPlugin() {
               }}
             />,
             document.body
-          )}
+          )} */}
       </>
     </div>
   );
