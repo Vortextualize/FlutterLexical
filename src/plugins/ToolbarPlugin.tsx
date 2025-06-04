@@ -30,7 +30,6 @@ import { PLAYGROUND_TRANSFORMERS } from "./MarkdownTransformers.tsx";
 import { useWebSocket } from "../context/WebSocketContext.tsx";
 import { handleAlignment } from "./toolbar/alignmentForEditNote.ts";
 import { LowPriority } from "./toolbar/editorPriorities.ts";
-import FloatingLinkEditor from "./toolbar/FloatingLinkEditor.tsx";
 import { addAlignmentMarkersToMarkdown } from "./toolbar/markdownAlignmentHelpers.ts";
 import { handleLinkFlow } from "./toolbar/flutterLinkHandler.ts";
 
@@ -66,7 +65,6 @@ export default function ToolbarPlugin() {
 
   const [editor] = useLexicalComposerContext();
   const toolbarRef = useRef(null);
-  const [isLink, setIsLink] = useState(false);
   // const [isCode, setIsCode] = useState(false);
 
   const [isFocused, setIsFocused] = useState<boolean>(false);
@@ -145,21 +143,6 @@ export default function ToolbarPlugin() {
       isItalicRef.current = italicFormat;
 
       // setIsCode(selection.hasFormat("code"));
-
-      // Check if the selected node or parent is a link
-      let isLinkSelected = false;
-      const nodes = selection.getNodes();
-      for (const node of nodes) {
-        const parent = node.getParent();
-        if ($isLinkNode(node) || ($isTextNode(node) && parent && $isLinkNode(parent))) {
-          isLinkSelected = true;
-        } else {
-          isLinkSelected = false;
-          break; // if even one node is not part of a link, stop
-        }
-      }
-      setIsLink(isLinkSelected);
-      isLinkClickedRef.current = isLinkSelected;
     }
   }, [editor]);
 
@@ -198,56 +181,102 @@ export default function ToolbarPlugin() {
   }, [editor, updateToolbar]);
 
   // #################
+  function startLinkFlow() {
+    editor.update(() => {
+      const selection = $getSelection();
+      if ($isRangeSelection(selection)) {
+        const node = selection.anchor.getNode();
+        if ($isLinkNode(node) || ($isTextNode(node) && $isLinkNode(node.getParent()))) {
+          handleLinkFlow(editor);
+        }
+      }
+    });
+  }
+
   const insertLink = useCallback(() => {
-    if (!isLink) {
+    if (!isLinkClickedRef.current) {
       editor.dispatchCommand(TOGGLE_LINK_COMMAND, "https://");
+      startLinkFlow();
+      console.log("link is being insertLink", isLinkClickedRef.current);
     } else {
       editor.dispatchCommand(TOGGLE_LINK_COMMAND, null);
+      isLinkClickedRef.current = false;
     }
-  }, [editor, isLink]);
-
-  // const updateLink = useCallback(
-  //   (url: string, text: string) => {
-  //     // Update the currently selected link with a new URL
-  //     editor.dispatchCommand(TOGGLE_LINK_COMMAND, url);
-  //   },
-  //   [editor]
-  // );
+  }, [editor]);
 
   const updateLink = useCallback(
     (url: string, text: string) => {
       editor.update(() => {
         const selection = $getSelection();
+        if (!$isRangeSelection(selection)) return;
 
-        if ($isRangeSelection(selection)) {
-          // If selection is inside a link, unwrap it first
-          const nodes = selection.getNodes();
-          nodes.forEach((node) => {
-            const parent = node.getParent();
-            if ($isLinkNode(parent)) {
-              parent.replace(node);
-            }
-          });
+        const selectedText = selection.getTextContent();
+        const textToUse = text?.trim() ?? "";
+        const nodes = selection.getNodes();
 
-          // Optionally replace selected text with provided `text`
-          if (text.trim()) {
-            selection.insertText(text.trim());
+        // Step 1: Unwrap and remove any existing link nodes
+        nodes.forEach((node) => {
+          const parent = node.getParent();
+          if ($isLinkNode(parent)) {
+            // If the parent is a link node, unwrap it
+            parent.insertBefore(node);
+            parent.remove();
+          } else if ($isLinkNode(node)) {
+            // If the node itself is a link, remove it
+            node.remove();
           }
+        });
 
-          // Wrap the current selection with a new link
+        // Step 2: Replace text if a new text is provided
+        if (textToUse.length > 0) {
+          if (textToUse !== selectedText) {
+            // Replace the selected text with the new text
+            selection.insertText(textToUse);
+
+            // Adjust the selection to cover the new text
+            const anchor = selection.anchor;
+            const offset = anchor.offset;
+            const node = anchor.getNode();
+            selection.setTextNodeRange(node, offset - textToUse.length, node, offset);
+          }
+        }
+
+        // Step 3: Apply the new link
+        if (url && url.trim() !== "") {
           editor.dispatchCommand(TOGGLE_LINK_COMMAND, url);
+          console.log("Link applied via updateLink", { url, text });
+        } else {
+          console.warn("Invalid URL provided; removing link");
         }
       });
     },
     [editor]
   );
 
-  const removeLink = useCallback(() => {
-    // Remove the link from the current selection
-    editor.dispatchCommand(TOGGLE_LINK_COMMAND, null);
+  const onUnlink = useCallback(() => {
+    editor.update(() => {
+      const selection = $getSelection();
+      if ($isRangeSelection(selection)) {
+        const nodes = selection.getNodes();
+        nodes.forEach((node) => {
+          // If the node itself is a link, unwrap it
+          if ($isLinkNode(node)) {
+            node.replace($createTextNode(node.getTextContent()));
+          } else if ($isTextNode(node) && $isLinkNode(node.getParent())) {
+            // If the parent is a link, unwrap the text node
+            const parent = node.getParent();
+            parent.replace(node);
+          }
+        });
+      }
+      console.log("Unlink command executed ReactJs:");
+    });
+    isLinkClickedRef.current = false;
   }, [editor]);
 
   const onCloseLink = useCallback(() => {
+    isLinkClickedRef.current = false;
+    console.log("link is being onCloseLink called, isLinkClickedRef:", isLinkClickedRef.current);
     if (!window.MarkdownChannel) {
       console.warn("MarkdownChannel not available on window");
       return;
@@ -255,7 +284,7 @@ export default function ToolbarPlugin() {
 
     const message = {
       type: "link_selected",
-      isLinkTrue: false,
+      isLinkTrue: isLinkClickedRef.current,
     };
 
     console.log("Sending message:", JSON.stringify(message));
@@ -392,7 +421,7 @@ export default function ToolbarPlugin() {
 
       if (!isInsidePopup) {
         setIsFocused(false);
-        setIsLink(false);
+        isLinkClickedRef.current = false;
         console.log("Editor blurred");
       }
     };
@@ -513,7 +542,8 @@ export default function ToolbarPlugin() {
             case "updateLink":
               updateLink(command.url, command.text);
               break;
-            case "removeLink":
+            case "onUnlink":
+              onUnlink();
               break;
             case "onCloseLink":
               onCloseLink();
@@ -640,41 +670,41 @@ export default function ToolbarPlugin() {
   // ##############################################################
 
   useEffect(() => {
-    if (isLink) {
-      console.log("Link is true, handling link flow", isLink);
-      handleLinkFlow(editor);
+    const editorElement = document.querySelector('[contenteditable="true"]') as HTMLElement | null;
+
+    function handleLinkClick(event: MouseEvent) {
+      let target = event.target as HTMLElement | null;
+      while (target && target !== editorElement) {
+        if (target.tagName === "A") {
+          setTimeout(() => {
+            startLinkFlow();
+            console.log("link is being handleLinkClick", isLinkClickedRef.current);
+          }, 0);
+          break;
+        }
+        target = target.parentElement;
+      }
     }
-  }, [isLink]);
+
+    if (editorElement) {
+      editorElement.addEventListener("click", handleLinkClick);
+    }
+
+    return () => {
+      if (editorElement) {
+        editorElement.removeEventListener("click", handleLinkClick);
+      }
+    };
+  }, [editor]);
 
   // ##############################################################
 
   return (
     <div className="toolbar" ref={toolbarRef}>
       <>
-        <button onClick={insertLink} className={"toolbar-item spaced " + (isLink ? "active" : "")} aria-label="Insert Link">
+        <button onClick={insertLink} className={"toolbar-item spaced " + (isLinkClickedRef.current ? "active" : "")} aria-label="Insert Link">
           <i className="format link" />
         </button>
-        {/* {isLink &&
-          createPortal(
-            <FloatingLinkEditor
-              editor={editor}
-              onClose={() => {
-                editor.update(() => {
-                  const selection = $getSelection();
-                  if ($isRangeSelection(selection)) {
-                    const node = getSelectedNode(selection);
-                    // Try parent first, then node itself
-                    const linkNode = $isLinkNode(node.getParent()) ? node.getParent() : $isLinkNode(node) ? node : null;
-                    if (linkNode) {
-                      // Select the end of the link node
-                      linkNode.selectEnd();
-                    }
-                  }
-                });
-              }}
-            />,
-            document.body
-          )} */}
       </>
     </div>
   );

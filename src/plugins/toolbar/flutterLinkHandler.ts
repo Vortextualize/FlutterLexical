@@ -26,7 +26,7 @@ function handleLinkFlow(editor) {
       }
 
       const finalText = selectedText.trim() !== "" ? selectedText : "Link";
-      const finalUrl = linkHref;
+      const finalUrl = linkHref.trim() !== "" ? linkHref : "https://";
 
       if (!window.MarkdownChannel) {
         console.warn("MarkdownChannel not available on window");
