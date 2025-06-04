@@ -208,45 +208,24 @@ export default function ToolbarPlugin() {
     (url: string, text: string) => {
       editor.update(() => {
         const selection = $getSelection();
-        if (!$isRangeSelection(selection)) return;
-
-        const selectedText = selection.getTextContent();
-        const textToUse = text?.trim() ?? "";
-        const nodes = selection.getNodes();
-
-        // Step 1: Unwrap and remove any existing link nodes
-        nodes.forEach((node) => {
-          const parent = node.getParent();
-          if ($isLinkNode(parent)) {
-            // If the parent is a link node, unwrap it
-            parent.insertBefore(node);
-            parent.remove();
-          } else if ($isLinkNode(node)) {
-            // If the node itself is a link, remove it
-            node.remove();
-          }
-        });
-
-        // Step 2: Replace text if a new text is provided
-        if (textToUse.length > 0) {
-          if (textToUse !== selectedText) {
-            // Replace the selected text with the new text
-            selection.insertText(textToUse);
-
-            // Adjust the selection to cover the new text
-            const anchor = selection.anchor;
-            const offset = anchor.offset;
-            const node = anchor.getNode();
-            selection.setTextNodeRange(node, offset - textToUse.length, node, offset);
-          }
-        }
-
-        // Step 3: Apply the new link
-        if (url && url.trim() !== "") {
+        if ($isRangeSelection(selection)) {
+          const nodes = selection.getNodes();
+          nodes.forEach((node) => {
+            if ($isLinkNode(node)) {
+              node.setURL(url);
+              const firstChild = node.getFirstChild();
+              if ($isTextNode(firstChild) && text) {
+                firstChild.setTextContent(text);
+              }
+            } else if ($isTextNode(node) && $isLinkNode(node.getParent())) {
+              const linkNode = node.getParent();
+              linkNode.setURL(url);
+              if (text) {
+                node.setTextContent(text);
+              }
+            }
+          });
           editor.dispatchCommand(TOGGLE_LINK_COMMAND, url);
-          console.log("Link applied via updateLink", { url, text });
-        } else {
-          console.warn("Invalid URL provided; removing link");
         }
       });
     },
