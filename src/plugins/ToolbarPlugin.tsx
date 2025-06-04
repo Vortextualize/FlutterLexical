@@ -204,33 +204,154 @@ export default function ToolbarPlugin() {
     }
   }, [editor]);
 
+  // const updateLink = useCallback(
+  //   (url: string, text: string) => {
+  //     editor.update(() => {
+  //       const selection = $getSelection();
+  //       if ($isRangeSelection(selection)) {
+  //         // Store original selection info
+  //         const originalAnchor = selection.anchor;
+  //         const originalFocus = selection.focus;
+
+  //         const nodes = selection.getNodes();
+  //         nodes.forEach((node) => {
+  //           if ($isLinkNode(node)) {
+  //             // Update link URL and text content
+  //             node.setURL(url);
+  //             const firstChild = node.getFirstChild();
+  //             if ($isTextNode(firstChild) && text) {
+  //               const safeOffset = Math.min(originalAnchor.offset, text.length);
+  //               firstChild.setTextContent(text);
+
+  //               // Adjust selection to stay within bounds
+  //               if (originalAnchor.key === node.getKey()) {
+  //                 selection.anchor.offset = safeOffset;
+  //               }
+  //               if (originalFocus.key === node.getKey()) {
+  //                 selection.focus.offset = safeOffset;
+  //               }
+  //             }
+  //           } else if ($isTextNode(node) && $isLinkNode(node.getParent())) {
+  //             // Handle text node inside link
+  //             const linkNode = node.getParent();
+  //             linkNode.setURL(url);
+  //             if (text) {
+  //               const safeOffset = Math.min(originalAnchor.offset, text.length);
+  //               node.setTextContent(text);
+
+  //               // Adjust selection to stay within bounds
+  //               if (originalAnchor.key === node.getKey()) {
+  //                 selection.anchor.offset = safeOffset;
+  //               }
+  //               if (originalFocus.key === node.getKey()) {
+  //                 selection.focus.offset = safeOffset;
+  //               }
+  //             }
+  //           }
+  //         });
+
+  //         // If we shortened the text, ensure selection stays valid
+  //         if (text) {
+  //           if (selection.anchor.offset > text.length) {
+  //             selection.anchor.offset = text.length;
+  //           }
+  //           if (selection.focus.offset > text.length) {
+  //             selection.focus.offset = text.length;
+  //           }
+  //         }
+
+  //         editor.dispatchCommand(TOGGLE_LINK_COMMAND, url);
+  //       }
+  //     });
+  //   },
+  //   [editor]
+  // );
+
   const updateLink = useCallback(
-    (url: string, text: string) => {
+    (url: string) => {
       editor.update(() => {
+        const root = $getRoot();
+        const beforeText = root.getTextContent();
+        console.log("Before link:", beforeText);
+
         const selection = $getSelection();
         if ($isRangeSelection(selection)) {
-          const nodes = selection.getNodes();
-          nodes.forEach((node) => {
-            if ($isLinkNode(node)) {
-              node.setURL(url);
-              const firstChild = node.getFirstChild();
-              if ($isTextNode(firstChild) && text) {
-                firstChild.setTextContent(text);
-              }
-            } else if ($isTextNode(node) && $isLinkNode(node.getParent())) {
-              const linkNode = node.getParent();
-              linkNode.setURL(url);
-              if (text) {
-                node.setTextContent(text);
-              }
-            }
-          });
           editor.dispatchCommand(TOGGLE_LINK_COMMAND, url);
+
+          const afterText = root.getTextContent();
+          console.log("After link:", afterText);
+
+          // Print with link as markdown
+          const markdown = $convertToMarkdownString(PLAYGROUND_TRANSFORMERS);
+          console.log("With link (markdown):", markdown);
         }
       });
     },
     [editor]
   );
+
+  // const updateLink = useCallback(
+  //   (url: string, text: string) => {
+  //     editor.update(() => {
+  //       const selection = $getSelection();
+  //       if ($isRangeSelection(selection)) {
+  //         // Store original selection info
+  //         const originalAnchor = selection.anchor;
+  //         const originalFocus = selection.focus;
+
+  //         const nodes = selection.getNodes();
+  //         nodes.forEach((node) => {
+  //           if ($isLinkNode(node)) {
+  //             // Update link URL and text content
+  //             node.setURL(url);
+  //             const firstChild = node.getFirstChild();
+  //             if ($isTextNode(firstChild) && text) {
+  //               const safeOffset = Math.min(originalAnchor.offset, text.length);
+  //               firstChild.setTextContent(text);
+
+  //               // Adjust selection to stay within bounds
+  //               if (originalAnchor.key === node.getKey()) {
+  //                 selection.anchor.offset = safeOffset;
+  //               }
+  //               if (originalFocus.key === node.getKey()) {
+  //                 selection.focus.offset = safeOffset;
+  //               }
+  //             }
+  //           } else if ($isTextNode(node) && $isLinkNode(node.getParent())) {
+  //             // Handle text node inside link
+  //             const linkNode = node.getParent();
+  //             linkNode.setURL(url);
+  //             if (text) {
+  //               const safeOffset = Math.min(originalAnchor.offset, text.length);
+  //               node.setTextContent(text);
+
+  //               // Adjust selection to stay within bounds
+  //               if (originalAnchor.key === node.getKey()) {
+  //                 selection.anchor.offset = safeOffset;
+  //               }
+  //               if (originalFocus.key === node.getKey()) {
+  //                 selection.focus.offset = safeOffset;
+  //               }
+  //             }
+  //           }
+  //         });
+
+  //         // If we shortened the text, ensure selection stays valid
+  //         if (text) {
+  //           if (selection.anchor.offset > text.length) {
+  //             selection.anchor.offset = text.length;
+  //           }
+  //           if (selection.focus.offset > text.length) {
+  //             selection.focus.offset = text.length;
+  //           }
+  //         }
+
+  //         editor.dispatchCommand(TOGGLE_LINK_COMMAND, url);
+  //       }
+  //     });
+  //   },
+  //   [editor]
+  // );
 
   const onUnlink = useCallback(() => {
     editor.update(() => {
