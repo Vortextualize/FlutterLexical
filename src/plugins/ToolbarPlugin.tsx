@@ -17,6 +17,7 @@ import {
   $isTextNode,
   $setSelection,
   $insertNodes,
+  RangeSelection,
 } from "lexical";
 import { $createLinkNode, $isLinkNode, LinkNode, TOGGLE_LINK_COMMAND } from "@lexical/link";
 import { $wrapNodes, $isAtNodeEnd, $trimTextContentFromAnchor } from "@lexical/selection";
@@ -181,14 +182,34 @@ export default function ToolbarPlugin() {
   }, [editor, updateToolbar]);
 
   // #################
+  const lastLinkNodeKeyRef = useRef<string | null>(null);
   function startLinkFlow() {
     editor.update(() => {
       const selection = $getSelection();
       if ($isRangeSelection(selection)) {
+        const selectedText = selection.getTextContent();
+        console.log("startLinkFlow - currently selected text:", selectedText);
+
         const node = selection.anchor.getNode();
+
+        let linkNode: LinkNode | null = null;
+
+        if ($isLinkNode(node)) {
+          linkNode = node;
+        } else if ($isTextNode(node) && $isLinkNode(node.getParent())) {
+          linkNode = node.getParent();
+        }
+
+        // ✅ Print link text and URL if linkNode exists
+        if (linkNode) {
+          console.log("startLinkFlow - full link text:", linkNode.getTextContent());
+          console.log("startLinkFlow - link:", linkNode.getURL());
+        }
+
         if ($isLinkNode(node) || ($isTextNode(node) && $isLinkNode(node.getParent()))) {
           handleLinkFlow(editor);
         }
+        console.log("Cursor offset in node:", selection.anchor.offset, "of text node:", selection.anchor.getNode().getTextContent());
       }
     });
   }
@@ -208,150 +229,97 @@ export default function ToolbarPlugin() {
   //   (url: string, text: string) => {
   //     editor.update(() => {
   //       const selection = $getSelection();
-  //       if ($isRangeSelection(selection)) {
-  //         // Store original selection info
-  //         const originalAnchor = selection.anchor;
-  //         const originalFocus = selection.focus;
+  //       if (!$isRangeSelection(selection)) return;
 
-  //         const nodes = selection.getNodes();
-  //         nodes.forEach((node) => {
-  //           if ($isLinkNode(node)) {
-  //             // Update link URL and text content
-  //             node.setURL(url);
-  //             const firstChild = node.getFirstChild();
-  //             if ($isTextNode(firstChild) && text) {
-  //               const safeOffset = Math.min(originalAnchor.offset, text.length);
-  //               firstChild.setTextContent(text);
+  //       const nodes = selection.getNodes();
 
-  //               // Adjust selection to stay within bounds
-  //               if (originalAnchor.key === node.getKey()) {
-  //                 selection.anchor.offset = safeOffset;
-  //               }
-  //               if (originalFocus.key === node.getKey()) {
-  //                 selection.focus.offset = safeOffset;
-  //               }
+  //       // Print the current selected text
+  //       const selectedText = selection.getTextContent();
+  //       console.log("000 Selected text:", selectedText);
+
+  //       // If selection is inside a link, print the full link text and the unselected part
+  //       nodes.forEach((node) => {
+  //         if ($isLinkNode(node)) {
+  //           const linkText = node.getTextContent();
+  //           if (linkText !== selectedText) {
+  //             // Print the part of the link that is NOT selected
+  //             const startIdx = linkText.indexOf(selectedText);
+  //             if (startIdx !== -1) {
+  //               const before = linkText.slice(0, startIdx);
+  //               const after = linkText.slice(startIdx + selectedText.length);
+  //               console.log("000 Unselected (before):", before);
+  //               console.log("000 Unselected (after):", after);
+  //             } else {
+  //               console.log("000 Selected text is not a substring of the link node.");
   //             }
-  //           } else if ($isTextNode(node) && $isLinkNode(node.getParent())) {
-  //             // Handle text node inside link
-  //             const linkNode = node.getParent();
-  //             linkNode.setURL(url);
-  //             if (text) {
-  //               const safeOffset = Math.min(originalAnchor.offset, text.length);
-  //               node.setTextContent(text);
-
-  //               // Adjust selection to stay within bounds
-  //               if (originalAnchor.key === node.getKey()) {
-  //                 selection.anchor.offset = safeOffset;
-  //               }
-  //               if (originalFocus.key === node.getKey()) {
-  //                 selection.focus.offset = safeOffset;
-  //               }
-  //             }
-  //           }
-  //         });
-
-  //         // If we shortened the text, ensure selection stays valid
-  //         if (text) {
-  //           if (selection.anchor.offset > text.length) {
-  //             selection.anchor.offset = text.length;
-  //           }
-  //           if (selection.focus.offset > text.length) {
-  //             selection.focus.offset = text.length;
+  //           } else {
+  //             console.log("000 Whole link is selected, no unselected part.");
   //           }
   //         }
+  //       });
 
-  //         editor.dispatchCommand(TOGGLE_LINK_COMMAND, url);
-  //       }
+  //       // ...existing code for removing and inserting link...
+  //       nodes.forEach((node) => {
+  //         if ($isLinkNode(node)) {
+  //           const unwrapped = node.getChildren();
+  //           node.replace(...unwrapped); // unwrap link
+  //         } else if ($isTextNode(node)) {
+  //           const parent = node.getParent();
+  //           if ($isLinkNode(parent)) {
+  //             parent.replace(node); // unwrap text from link
+  //           }
+  //         }
+  //       });
+
+  //       const linkNode = $createLinkNode(url, { target: "_blank" });
+  //       linkNode.append($createTextNode(text));
+  //       $insertNodes([linkNode]);
+
+  //       selection.setTextNodeRange(linkNode.getFirstDescendant(), 0, linkNode.getFirstDescendant(), text.length);
   //     });
   //   },
   //   [editor]
   // );
 
   const updateLink = useCallback(
-    (url: string) => {
+    (url: string, text: string) => {
       editor.update(() => {
-        const root = $getRoot();
-        const beforeText = root.getTextContent();
-        console.log("Before link:", beforeText);
-
         const selection = $getSelection();
-        if ($isRangeSelection(selection)) {
-          editor.dispatchCommand(TOGGLE_LINK_COMMAND, url);
+        if (!$isRangeSelection(selection)) return;
 
-          const afterText = root.getTextContent();
-          console.log("After link:", afterText);
+        const nodes = selection.getNodes();
+        let linkNode: LinkNode | null = null;
 
-          // Print with link as markdown
-          const markdown = $convertToMarkdownString(PLAYGROUND_TRANSFORMERS);
-          console.log("With link (markdown):", markdown);
+        // Locate existing link node within selection
+        nodes.forEach((node) => {
+          if ($isLinkNode(node)) {
+            linkNode = node;
+          } else if ($isTextNode(node) && $isLinkNode(node.getParent())) {
+            linkNode = node.getParent();
+          }
+        });
+
+        if (!linkNode) return; // If no link node found, exit
+
+        console.log("Before update: Link text -", linkNode.getTextContent());
+        console.log("Before update: Link URL -", linkNode.getURL());
+
+        // Update link text & URL
+        linkNode.setURL(url);
+        const firstChild = linkNode.getFirstChild();
+        if ($isTextNode(firstChild)) {
+          firstChild.setTextContent(text);
         }
+
+        console.log("After update: Link text -", linkNode.getTextContent());
+        console.log("After update: Link URL -", linkNode.getURL());
+
+        // Ensure cursor stays inside updated link
+        selection.setTextNodeRange(firstChild, 0, firstChild, text.length);
       });
     },
     [editor]
   );
-
-  // const updateLink = useCallback(
-  //   (url: string, text: string) => {
-  //     editor.update(() => {
-  //       const selection = $getSelection();
-  //       if ($isRangeSelection(selection)) {
-  //         // Store original selection info
-  //         const originalAnchor = selection.anchor;
-  //         const originalFocus = selection.focus;
-
-  //         const nodes = selection.getNodes();
-  //         nodes.forEach((node) => {
-  //           if ($isLinkNode(node)) {
-  //             // Update link URL and text content
-  //             node.setURL(url);
-  //             const firstChild = node.getFirstChild();
-  //             if ($isTextNode(firstChild) && text) {
-  //               const safeOffset = Math.min(originalAnchor.offset, text.length);
-  //               firstChild.setTextContent(text);
-
-  //               // Adjust selection to stay within bounds
-  //               if (originalAnchor.key === node.getKey()) {
-  //                 selection.anchor.offset = safeOffset;
-  //               }
-  //               if (originalFocus.key === node.getKey()) {
-  //                 selection.focus.offset = safeOffset;
-  //               }
-  //             }
-  //           } else if ($isTextNode(node) && $isLinkNode(node.getParent())) {
-  //             // Handle text node inside link
-  //             const linkNode = node.getParent();
-  //             linkNode.setURL(url);
-  //             if (text) {
-  //               const safeOffset = Math.min(originalAnchor.offset, text.length);
-  //               node.setTextContent(text);
-
-  //               // Adjust selection to stay within bounds
-  //               if (originalAnchor.key === node.getKey()) {
-  //                 selection.anchor.offset = safeOffset;
-  //               }
-  //               if (originalFocus.key === node.getKey()) {
-  //                 selection.focus.offset = safeOffset;
-  //               }
-  //             }
-  //           }
-  //         });
-
-  //         // If we shortened the text, ensure selection stays valid
-  //         if (text) {
-  //           if (selection.anchor.offset > text.length) {
-  //             selection.anchor.offset = text.length;
-  //           }
-  //           if (selection.focus.offset > text.length) {
-  //             selection.focus.offset = text.length;
-  //           }
-  //         }
-
-  //         editor.dispatchCommand(TOGGLE_LINK_COMMAND, url);
-  //       }
-  //     });
-  //   },
-  //   [editor]
-  // );
 
   const onUnlink = useCallback(() => {
     editor.update(() => {
@@ -365,7 +333,9 @@ export default function ToolbarPlugin() {
           } else if ($isTextNode(node) && $isLinkNode(node.getParent())) {
             // If the parent is a link, unwrap the text node
             const parent = node.getParent();
-            parent.replace(node);
+            if (parent) {
+              parent.replace(node);
+            }
           }
         });
       }
@@ -405,6 +375,12 @@ export default function ToolbarPlugin() {
     });
   }, [editor]);
 
+  function focusEditor() {
+    const editorElement = document.querySelector('[contenteditable="true"]') as HTMLElement;
+    if (editorElement) {
+      editorElement.focus();
+    }
+  }
   // #################
 
   // toggle for markdown
@@ -641,6 +617,7 @@ export default function ToolbarPlugin() {
               break;
             case "updateLink":
               updateLink(command.url, command.text);
+              // updateLink("https://updated.com", "Updated Text");
               break;
             case "onUnlink":
               onUnlink();
@@ -802,8 +779,13 @@ export default function ToolbarPlugin() {
   return (
     <div className="toolbar" ref={toolbarRef}>
       <>
-        <button onClick={insertLink} className={"toolbar-item spaced " + (isLinkClickedRef.current ? "active" : "")} aria-label="Insert Link">
-          <i className="format link" />
+        <button onClick={insertLink}>Insert/Remove Link</button>
+        <button
+          onClick={() => {
+            updateLink("https://updated.com", "Updated Text");
+          }}
+        >
+          Update Link
         </button>
       </>
     </div>

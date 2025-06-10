@@ -5,44 +5,39 @@ function handleLinkFlow(editor) {
   editor.update(() => {
     const selection = $getSelection();
 
-    if ($isRangeSelection(selection)) {
-      // Get first selected node (or parent if link)
-      const node = selection.getNodes()[0];
-      const parent = node.getParent();
+    if (!$isRangeSelection(selection)) return;
 
-      let selectedText = selection.getTextContent();
-      let linkHref = "";
+    const node = selection.getNodes()[0];
+    const parent = node.getParent();
 
-      // Check if parent is a link
-      if (parent && $isLinkNode(parent)) {
-        linkHref = parent.getURL();
-        selectedText = parent.getTextContent();
-      }
+    let selectedText = selection.getTextContent();
+    let linkHref = "";
 
-      // Or the node itself is a link
-      else if ($isLinkNode(node)) {
-        linkHref = node.getURL();
-        selectedText = node.getTextContent();
-      }
-
-      const finalText = selectedText.trim() !== "" ? selectedText : "Link";
-      const finalUrl = linkHref.trim() !== "" ? linkHref : "https://";
-
-      if (!window.MarkdownChannel) {
-        console.warn("MarkdownChannel not available on window");
-        return;
-      }
-
-      const message = {
-        type: "link_selected",
-        isLinkTrue: true,
-        linkUrl: finalUrl,
-        linkText: finalText,
-      };
-
-      console.log("Sending message:", JSON.stringify(message));
-      window.MarkdownChannel.postMessage(JSON.stringify(message));
+    if (parent && $isLinkNode(parent)) {
+      linkHref = parent.getURL();
+      selectedText = parent.getTextContent();
+    } else if ($isLinkNode(node)) {
+      linkHref = node.getURL();
+      selectedText = node.getTextContent();
     }
+
+    const finalText = selectedText?.trim() || "Link";
+    const finalUrl = linkHref?.trim() || "https://";
+
+    if (!window.MarkdownChannel) {
+      console.warn("MarkdownChannel not available on window");
+      return;
+    }
+
+    const message = {
+      type: "link_selected",
+      isLinkTrue: true,
+      linkUrl: finalUrl,
+      linkText: finalText,
+    };
+
+    console.log("Sending message:", message);
+    window.MarkdownChannel.postMessage(JSON.stringify(message));
   });
 }
 
