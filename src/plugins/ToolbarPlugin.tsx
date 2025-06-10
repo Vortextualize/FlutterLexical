@@ -214,9 +214,41 @@ export default function ToolbarPlugin() {
     });
   }
 
+  // 1. Store the last inserted link node key in insertLink
+  // const insertLink = useCallback(() => {
+  //   if (!isLinkClickedRef.current) {
+  //     editor.dispatchCommand(TOGGLE_LINK_COMMAND, "https://");
+  //     startLinkFlow();
+  //     console.log("link is being insertLink", isLinkClickedRef.current);
+  //   } else {
+  //     editor.dispatchCommand(TOGGLE_LINK_COMMAND, null);
+  //     isLinkClickedRef.current = false;
+  //   }
+  // }, [editor]);
+
   const insertLink = useCallback(() => {
     if (!isLinkClickedRef.current) {
       editor.dispatchCommand(TOGGLE_LINK_COMMAND, "https://");
+      editor.update(() => {
+        const selection = $getSelection();
+        if ($isRangeSelection(selection)) {
+          const node = selection.anchor.getNode();
+          let linkNode: LinkNode | null = null;
+          if ($isLinkNode(node)) {
+            linkNode = node;
+          } else if ($isTextNode(node) && $isLinkNode(node.getParent())) {
+            linkNode = node.getParent();
+          }
+          if (linkNode) {
+            const firstChild = linkNode.getFirstChild();
+            if ($isTextNode(firstChild)) {
+              const textLength = firstChild.getTextContentSize();
+              const middle = Math.floor(textLength / 2);
+              selection.setTextNodeRange(firstChild, middle, firstChild, middle);
+            }
+          }
+        }
+      });
       startLinkFlow();
       console.log("link is being insertLink", isLinkClickedRef.current);
     } else {
@@ -225,72 +257,17 @@ export default function ToolbarPlugin() {
     }
   }, [editor]);
 
-  // const updateLink = useCallback(
-  //   (url: string, text: string) => {
-  //     editor.update(() => {
-  //       const selection = $getSelection();
-  //       if (!$isRangeSelection(selection)) return;
-
-  //       const nodes = selection.getNodes();
-
-  //       // Print the current selected text
-  //       const selectedText = selection.getTextContent();
-  //       console.log("000 Selected text:", selectedText);
-
-  //       // If selection is inside a link, print the full link text and the unselected part
-  //       nodes.forEach((node) => {
-  //         if ($isLinkNode(node)) {
-  //           const linkText = node.getTextContent();
-  //           if (linkText !== selectedText) {
-  //             // Print the part of the link that is NOT selected
-  //             const startIdx = linkText.indexOf(selectedText);
-  //             if (startIdx !== -1) {
-  //               const before = linkText.slice(0, startIdx);
-  //               const after = linkText.slice(startIdx + selectedText.length);
-  //               console.log("000 Unselected (before):", before);
-  //               console.log("000 Unselected (after):", after);
-  //             } else {
-  //               console.log("000 Selected text is not a substring of the link node.");
-  //             }
-  //           } else {
-  //             console.log("000 Whole link is selected, no unselected part.");
-  //           }
-  //         }
-  //       });
-
-  //       // ...existing code for removing and inserting link...
-  //       nodes.forEach((node) => {
-  //         if ($isLinkNode(node)) {
-  //           const unwrapped = node.getChildren();
-  //           node.replace(...unwrapped); // unwrap link
-  //         } else if ($isTextNode(node)) {
-  //           const parent = node.getParent();
-  //           if ($isLinkNode(parent)) {
-  //             parent.replace(node); // unwrap text from link
-  //           }
-  //         }
-  //       });
-
-  //       const linkNode = $createLinkNode(url, { target: "_blank" });
-  //       linkNode.append($createTextNode(text));
-  //       $insertNodes([linkNode]);
-
-  //       selection.setTextNodeRange(linkNode.getFirstDescendant(), 0, linkNode.getFirstDescendant(), text.length);
-  //     });
-  //   },
-  //   [editor]
-  // );
-
+  // 2. In updateLink, if no link is selected, use lastLinkNodeKeyRef
   const updateLink = useCallback(
-    (url: string, text: string) => {
+    (url: string, text: string, isNew: boolean = false) => {
       editor.update(() => {
         const selection = $getSelection();
         if (!$isRangeSelection(selection)) return;
 
-        const nodes = selection.getNodes();
         let linkNode: LinkNode | null = null;
+        const nodes = selection.getNodes();
 
-        // Locate existing link node within selection
+        // Try to find link node in selection
         nodes.forEach((node) => {
           if ($isLinkNode(node)) {
             linkNode = node;
@@ -299,10 +276,16 @@ export default function ToolbarPlugin() {
           }
         });
 
-        if (!linkNode) return; // If no link node found, exit
+        // If not found, use lastLinkNodeKeyRef
+        if (!linkNode && lastLinkNodeKeyRef.current) {
+          const maybeNode = editor.getEditorState().read(() => {
+            const node = $getRoot().getDescendantByKey(lastLinkNodeKeyRef.current!);
+            return $isLinkNode(node) ? node : null;
+          });
+          linkNode = maybeNode;
+        }
 
-        console.log("Before update: Link text -", linkNode.getTextContent());
-        console.log("Before update: Link URL -", linkNode.getURL());
+        if (!linkNode) return;
 
         // Update link text & URL
         linkNode.setURL(url);
@@ -310,9 +293,6 @@ export default function ToolbarPlugin() {
         if ($isTextNode(firstChild)) {
           firstChild.setTextContent(text);
         }
-
-        console.log("After update: Link text -", linkNode.getTextContent());
-        console.log("After update: Link URL -", linkNode.getURL());
 
         // Ensure cursor stays inside updated link
         selection.setTextNodeRange(firstChild, 0, firstChild, text.length);
@@ -682,7 +662,7 @@ export default function ToolbarPlugin() {
 
     window.addEventListener("message", listener);
     return () => window.removeEventListener("message", listener);
-  }, [editor, insertLink, handleMarkdownToggle, setAppToken]);
+  }, [editor, handleMarkdownToggle, setAppToken]);
 
   // #########################################
 
