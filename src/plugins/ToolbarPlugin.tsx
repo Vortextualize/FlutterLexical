@@ -22,7 +22,7 @@ import { INSERT_ORDERED_LIST_COMMAND, INSERT_UNORDERED_LIST_COMMAND, INSERT_CHEC
 import { $createHeadingNode, $createQuoteNode, $isHeadingNode } from "@lexical/rich-text";
 import { $createCodeNode, $isCodeNode } from "@lexical/code";
 import { $convertFromMarkdownString, $convertToMarkdownString } from "@lexical/markdown";
-import { PLAYGROUND_TRANSFORMERS } from "./MarkdownTransformers.tsx";
+import { PLAYGROUND_TRANSFORMERS } from "../transformer/MarkdownTransformers.tsx";
 import { useWebSocket } from "../context/WebSocketContext.tsx";
 import { handleAlignment } from "./toolbar/alignmentForEditNote.ts";
 import { LowPriority } from "./toolbar/editorPriorities.ts";
