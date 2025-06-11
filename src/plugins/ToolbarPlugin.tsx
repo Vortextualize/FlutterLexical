@@ -16,6 +16,7 @@ import {
   $getRoot,
   $isTextNode,
 } from "lexical";
+import { $wrapNodes, $trimTextContentFromAnchor } from "@lexical/selection";
 import { $getNearestNodeOfType, mergeRegister } from "@lexical/utils";
 import { INSERT_ORDERED_LIST_COMMAND, INSERT_UNORDERED_LIST_COMMAND, INSERT_CHECK_LIST_COMMAND, $isListNode, ListNode } from "@lexical/list";
 import { $createHeadingNode, $createQuoteNode, $isHeadingNode } from "@lexical/rich-text";
@@ -601,7 +602,7 @@ export default function ToolbarPlugin() {
         >
           Add Preview
         </button>
-        <button onClick={onCloseLink}>onCloseLink</button>
+        <button onClick={onCloseLink}>onUnlink</button>
         <button onClick={onUnlink}>onUnlink</button>
       </>
     </div>

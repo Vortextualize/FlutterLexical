@@ -144,7 +144,9 @@ export function useFlutterLinkHandler(editor, isLinkClickedRef) {
         }
 
         // Ensure cursor stays inside updated link
-        selection.setTextNodeRange(firstChild, 0, firstChild, text.length);
+        if ($isTextNode(firstChild)) {
+          selection.setTextNodeRange(firstChild, 0, firstChild, text.length);
+        }
       });
     },
     [editor]
