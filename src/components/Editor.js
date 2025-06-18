@@ -26,6 +26,8 @@ import PlaygroundAutoLinkPlugin from "../plugins/AutoLinkPlugin.tsx";
 import { MentionNode } from "../nodes/MentionNode.ts";
 import MentionsPlugin from "../plugins/MentionsPlugin.tsx";
 import { CheckListPlugin } from "@lexical/react/LexicalCheckListPlugin";
+import { PreviewLinkNode } from "../nodes/PreviewLinkNode.js";
+import { PreviewLinkMarkdownTransformer } from "../transformer/PreviewLinkMarkdownTransformer.tsx";
 // import prepopulatedText from "./SampleText.tsx";
 
 function Placeholder() {
@@ -40,7 +42,7 @@ const editorConfig = {
     throw error;
   },
   // Any custom nodes go here
-  nodes: [HeadingNode, ListNode, ListItemNode, QuoteNode, CodeNode, CodeHighlightNode, AutoLinkNode, LinkNode, HashtagNode, MentionNode],
+  nodes: [HeadingNode, ListNode, ListItemNode, QuoteNode, CodeNode, CodeHighlightNode, AutoLinkNode, LinkNode, HashtagNode, MentionNode, PreviewLinkNode],
 };
 
 export default function Editor() {
@@ -63,7 +65,8 @@ export default function Editor() {
           <ListPlugin />
           <LinkPlugin />
           <PlaygroundAutoLinkPlugin />
-          <MarkdownShortcutPlugin transformers={TRANSFORMERS} />
+          {/* <MarkdownShortcutPlugin transformers={TRANSFORMERS} /> */}
+          <MarkdownShortcutPlugin transformers={[...TRANSFORMERS, PreviewLinkMarkdownTransformer]} />
           <CodeHighlightPlugin />
           <CheckListPlugin />
           {/* <ListMaxIndentLevelPlugin maxDepth={7} /> */}

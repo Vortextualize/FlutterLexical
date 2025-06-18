@@ -15,6 +15,7 @@ import {
   RootNode,
   $getRoot,
   $isTextNode,
+  $insertNodes,
 } from "lexical";
 import { $wrapNodes, $trimTextContentFromAnchor } from "@lexical/selection";
 import { $getNearestNodeOfType, mergeRegister } from "@lexical/utils";
@@ -26,8 +27,9 @@ import { PLAYGROUND_TRANSFORMERS } from "../transformer/MarkdownTransformers.tsx
 import { useWebSocket } from "../context/WebSocketContext.tsx";
 import { handleAlignment } from "./toolbar/alignmentForEditNote.ts";
 import { LowPriority } from "./toolbar/editorPriorities.ts";
-import { addAlignmentMarkersToMarkdown } from "./toolbar/markdownAlignmentHelpers.ts";
+import { addAlignmentMarkersToMarkdown, exportMarkdownWithAlignment } from "./toolbar/markdownAlignmentHelpers.ts";
 import { useFlutterLinkHandler } from "./toolbar/flutterLinkHandler.ts";
+import { PreviewLinkNode } from "../nodes/PreviewLinkNode.js";
 
 declare global {
   interface Window {
@@ -164,28 +166,22 @@ export default function ToolbarPlugin() {
 
   // #################
 
-  const addPreview = useCallback(
-    (url: string, text?: string, image?: string, embed?: string, isNew: boolean = false) => {
-      console.log("clicked");
-      console.log("URL:", url);
-      console.log("Text (optional):", text);
-      console.log("Image (optional):", image);
-      console.log("Embed (optional):", embed);
-      console.log("Is New:", isNew);
+  function addPreview(url: string, imageOn: boolean = true, textOn: boolean = true, embedOn: boolean = false) {
+    editor.update(() => {
+      const root = $getRoot();
+      const selection = $getSelection();
 
-      // Now, inside this function, you can conditionally use text, image, and embed
-      // based on whether they were provided by the backend.
+      // Create new node instance with additional properties
+      const previewNode = new PreviewLinkNode(url, imageOn, textOn, embedOn);
 
-      // Example: If you were to insert a Lexical node here based on the data:
-      // editor.update(() => {
-      //   // You would fetch data from backend here if not already available,
-      //   // or use the provided optional parameters directly.
-      //   const previewNode = $createPreviewNode(url, text, image, embed); // Assuming you have a custom PreviewNode
-      //   $insertNodes([previewNode]);
-      // });
-    },
-    [editor] // `editor` is still a dependency if you intend to use it inside.
-  );
+      // Insert into the editor
+      if (selection) {
+        selection.insertNodes([previewNode]);
+      } else {
+        root.append(previewNode);
+      }
+    });
+  }
 
   // #################
 
@@ -224,11 +220,12 @@ export default function ToolbarPlugin() {
         const isEmpty = root.getTextContent().trim().length === 0;
 
         // This must capture everything before applying alignment
-        markdown = $convertToMarkdownString(PLAYGROUND_TRANSFORMERS);
+        // markdown = $convertToMarkdownString(PLAYGROUND_TRANSFORMERS);
         // console.log("markdown", markdown, canUndoRef.current, canRedoRef.current, isBoldRef.current, isItalicRef.current, blockTypeRef.current, isLinkClickedRef.current, alignmentRef.current);
         // console.log("Raw markdown lines", markdown.split("\n"));
 
-        markdown = addAlignmentMarkersToMarkdown(editor);
+        // markdown = addAlignmentMarkersToMarkdown(editor);
+        markdown = exportMarkdownWithAlignment(editor);
         console.log("Final markdown with alignments", markdown);
 
         // Get height
@@ -283,7 +280,7 @@ export default function ToolbarPlugin() {
     const handleFocus = () => {
       setIsFocused(true);
       updateMarkdownContent();
-      console.log("Editor focused");
+      // console.log("Editor focused");
     };
 
     const handleBlur = (e: FocusEvent) => {
@@ -296,7 +293,7 @@ export default function ToolbarPlugin() {
         if (grandparent) {
           const style = window.getComputedStyle(grandparent);
           linkClass = style.display;
-          console.log("Grandparent:", grandparent, linkClass);
+          // console.log("Grandparent:", grandparent, linkClass);
         }
         updateMarkdownContent();
       }
@@ -304,7 +301,7 @@ export default function ToolbarPlugin() {
       if (!isInsidePopup) {
         setIsFocused(false);
         isLinkClickedRef.current = false;
-        console.log("Editor blurred");
+        // console.log("Editor blurred");
       }
     };
 
@@ -317,7 +314,7 @@ export default function ToolbarPlugin() {
     setTimeout(() => {
       if (document.activeElement === editorElement) {
         setIsFocused(true);
-        console.log("Editor was already focused on mount");
+        // console.log("Editor was already focused on mount");
       }
       updateMarkdownContent(); // send initial state to Flutter
     }, 0);
@@ -348,7 +345,7 @@ export default function ToolbarPlugin() {
       } else {
         linkClass = "";
       }
-      console.log("Click was inside doc");
+      // console.log("Click was inside doc");
     };
 
     document.addEventListener("click", handleBodyClick, true);
@@ -419,7 +416,7 @@ export default function ToolbarPlugin() {
               });
               break;
             case "addPreview":
-              addPreview(command.url, command.text, command.image, command.embed, command.isNew);
+              addPreview(command.url, command.text, command.image, command.embed);
               break;
             case "insertLink":
               insertLink();
@@ -595,13 +592,7 @@ export default function ToolbarPlugin() {
         >
           Update Link
         </button>
-        <button
-          onClick={() => {
-            addPreview("https://google.com");
-          }}
-        >
-          Add Preview
-        </button>
+        <button onClick={() => addPreview("https://www.youtube.com", false, false, false)}>Add Preview</button>
         <button onClick={onCloseLink}>onUnlink</button>
         <button onClick={onUnlink}>onUnlink</button>
       </>
