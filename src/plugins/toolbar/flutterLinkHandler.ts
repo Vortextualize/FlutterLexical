@@ -332,6 +332,15 @@ export function useFlutterLinkHandler(editor, isLinkClickedRef) {
           }
         }
 
+        // Fallback: use lastLinkNodeKeyRef if no link node found in selection
+        if (!linkNode && lastLinkNodeKeyRef.current) {
+          const maybeNode = editor.getEditorState().read(() => {
+            const node = $getNodeByKey(lastLinkNodeKeyRef.current!);
+            return $isLinkNode(node) ? node : null;
+          });
+          linkNode = maybeNode;
+        }
+
         if (linkNode) {
           // Replace the link node with the preview node
           const parent = linkNode.getParent();
@@ -349,6 +358,9 @@ export function useFlutterLinkHandler(editor, isLinkClickedRef) {
           } else {
             $getRoot().append(previewNode);
           }
+
+          // Clear the ref so future unlink/close does NOT remove the node
+          lastDefaultLinkNodeKeyRef.current = null;
         }
         // If not on a link, do nothing
       });
