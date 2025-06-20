@@ -46,6 +46,10 @@ function handleLinkFlow(editor) {
 export function useFlutterLinkHandler(editor, isLinkClickedRef) {
   const lastLinkNodeKeyRef = useRef<string | null>(null);
 
+  // To check if user added a link with default text "Link"
+  // This is used to avoid unnecessary updates when the user clicks on the link again
+  const lastDefaultLinkNodeKeyRef = useRef<string | null>(null);
+
   const startLinkFlow = useCallback(() => {
     editor.update(() => {
       const selection = $getSelection();
@@ -83,15 +87,26 @@ export function useFlutterLinkHandler(editor, isLinkClickedRef) {
       if (!$isRangeSelection(selection)) return;
 
       if (selection.isCollapsed()) {
-        // No text selected: insert a link node with default text "Link" at the cursor
         const linkNode = $createLinkNode("https://");
         linkNode.append($createTextNode("Link"));
         selection.insertNodes([linkNode]);
-        // Optionally, select the text inside the new link for editing
-        const firstChild = linkNode.getFirstChild();
-        if ($isTextNode(firstChild)) {
-          selection.setTextNodeRange(firstChild, 0, firstChild, firstChild.getTextContentSize());
-        }
+        lastDefaultLinkNodeKeyRef.current = linkNode.getKey();
+        lastLinkNodeKeyRef.current = linkNode.getKey(); // <-- add this line
+
+        editor.update(() => {
+          const node = $getNodeByKey(linkNode.getKey());
+          if ($isLinkNode(node)) {
+            const firstChild = node.getFirstChild();
+            if ($isTextNode(firstChild)) {
+              const newSelection = $getSelection();
+              if ($isRangeSelection(newSelection)) {
+                newSelection.setTextNodeRange(firstChild, 0, firstChild, firstChild.getTextContentSize());
+              }
+            }
+          }
+        });
+
+        // Only call startLinkFlow AFTER setting the selection
         startLinkFlow();
         return;
       }
@@ -218,12 +233,26 @@ export function useFlutterLinkHandler(editor, isLinkClickedRef) {
           $getRoot().append(newLink);
         }
         selection.setTextNodeRange(newLink.getFirstChild() as TextNode, 0, newLink.getFirstChild() as TextNode, text.length);
+        lastDefaultLinkNodeKeyRef.current = null;
       });
     },
     [editor]
   );
 
   const onUnlink = useCallback(() => {
+    // Remove the default-inserted link node if it exists and is not updated
+    if (lastDefaultLinkNodeKeyRef.current) {
+      editor.update(() => {
+        const node = $getNodeByKey(lastDefaultLinkNodeKeyRef.current!);
+        if ($isLinkNode(node) && node.getTextContent() === "Link") {
+          node.remove();
+          lastDefaultLinkNodeKeyRef.current = null;
+          return;
+        }
+      });
+    }
+
+    // ...existing unlink logic (optional, for other links)...
     editor.update(() => {
       const selection = $getSelection();
       if ($isRangeSelection(selection)) {
