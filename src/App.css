@@ -378,8 +378,8 @@ pre::-webkit-scrollbar-thumb {
 }
 
 .toolbar {
-  /* display: flex; */
-  display: none;
+  display: flex;
+  /* display: none; */
   background: #fff;
   border-top-left-radius: 10px;
   border-top-right-radius: 10px;

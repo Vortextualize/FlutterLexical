@@ -568,14 +568,14 @@ export default function ToolbarPlugin() {
   return (
     <div className="toolbar" ref={toolbarRef}>
       <>
-        {/* <button onClick={insertLink}>Insert/Remove Link</button>
+        <button onClick={insertLink}>Insert/Remove Link</button>
         <button
           onClick={() => {
             updateLink("https://updated.com", "Updated Text");
           }}
         >
           Update Link
-        </button> */}
+        </button>
         <button onClick={() => addPreview("https://youtu.be/dgZqg2uH6V8?si=NxDplSJEXTwpExN7", false, false, true)}>Youtube Preview</button>
         <button onClick={() => addPreview("https://www.google.com", true, true, false)}>Google Preview</button>
         {/* <button onClick={onCloseLink}>onCloseLink</button>

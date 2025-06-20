@@ -268,18 +268,39 @@ export function useFlutterLinkHandler(editor, isLinkClickedRef) {
   const addPreview = useCallback(
     (url: string, imageOn: boolean = true, textOn: boolean = true, embedOn: boolean = false) => {
       editor.update(() => {
-        const root = $getRoot();
         const selection = $getSelection();
+        if (!selection) return;
 
-        // Create new node instance with additional properties
-        const previewNode = new PreviewLinkNode(url, imageOn, textOn, embedOn);
+        // Try to find a link node in the selection (like updateLink does)
+        let linkNode: LinkNode | null = null;
+        const nodes = selection.getNodes();
 
-        // Insert into the editor
-        if (selection) {
-          selection.insertNodes([previewNode]);
-        } else {
-          root.append(previewNode);
+        for (const node of nodes) {
+          if ($isLinkNode(node)) linkNode = node;
+          else if ($isTextNode(node) && $isLinkNode(node.getParent())) {
+            linkNode = node.getParent();
+          }
         }
+
+        if (linkNode) {
+          // Replace the link node with the preview node
+          const parent = linkNode.getParent();
+          const nextSibling = linkNode.getNextSibling();
+          linkNode.remove();
+
+          const previewNode = new PreviewLinkNode(url, imageOn, textOn, embedOn);
+
+          if (parent) {
+            if (nextSibling) {
+              nextSibling.insertBefore(previewNode);
+            } else {
+              parent.append(previewNode);
+            }
+          } else {
+            $getRoot().append(previewNode);
+          }
+        }
+        // If not on a link, do nothing
       });
     },
     [editor]
