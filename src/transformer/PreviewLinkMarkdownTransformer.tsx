@@ -2,12 +2,26 @@ import { $createParagraphNode, $createTextNode } from "lexical";
 import type { ElementTransformer } from "@lexical/markdown";
 import { PreviewLinkNode } from "../nodes/PreviewLinkNode";
 
+const previewOptionsRegex = /\{link_type:'preview',([^}]*)\}/;
+
+function parsePreviewOptions(markdown: string) {
+  const match = previewOptionsRegex.exec(markdown);
+  if (!match) return { textOn: true, imageOn: true, embedOn: false };
+
+  const options = match[1];
+  return {
+    textOn: !/text:'off'/.test(options),
+    imageOn: !/image:'off'/.test(options),
+    embedOn: /embed:'on'/.test(options),
+  };
+}
+
 export const PreviewLinkMarkdownTransformer: ElementTransformer = {
   dependencies: [PreviewLinkNode],
 
   type: "element",
 
-  regExp: /\[Preview\]\((.*?)\)/,
+  regExp: /\[([^\]]+)\]\(([^)]+)\)\{link_type:'preview',([^}]*)\}/,
 
   export: (node) => {
     if (node instanceof PreviewLinkNode) {
@@ -17,39 +31,29 @@ export const PreviewLinkMarkdownTransformer: ElementTransformer = {
   },
 
   replace: (parentNode, matchedString, match) => {
-    const url = match[1];
-    const fullText = parentNode.getTextContent();
-    const matchStr = typeof matchedString === "string" ? matchedString : String(matchedString);
-    const matchStart = fullText.indexOf(matchStr);
-    const matchEnd = matchStart + matchedString.length;
-
-    if (matchStart === -1) return;
-
-    const beforeText = fullText.slice(0, matchStart).trimEnd();
-    const afterText = fullText.slice(matchEnd).trimStart();
+    // match[1] = text, match[2] = url, match[3] = preview options
+    const url = match[2];
+    const optionsString = match[3] || "";
+    const previewOptions = {
+      textOn: !/text:'off'/.test(optionsString),
+      imageOn: !/image:'off'/.test(optionsString),
+      embedOn: /embed:'on'/.test(optionsString),
+    };
 
     const grandParent = parentNode.getParent();
     if (!grandParent) return;
 
     parentNode.remove();
 
-    // 1. Line before preview
-    if (beforeText) {
-      const beforePara = $createParagraphNode();
-      beforePara.append($createTextNode(beforeText));
-      grandParent.append(beforePara);
-    }
-
-    // 2. The preview box on its own line
     const previewPara = $createParagraphNode();
-    previewPara.append(new PreviewLinkNode(url));
+    previewPara.append(
+      new PreviewLinkNode(
+        url,
+        previewOptions.imageOn,
+        previewOptions.textOn,
+        previewOptions.embedOn
+      )
+    );
     grandParent.append(previewPara);
-
-    // 3. Line after preview
-    if (afterText) {
-      const afterPara = $createParagraphNode();
-      afterPara.append($createTextNode(afterText));
-      grandParent.append(afterPara);
-    }
   },
 };

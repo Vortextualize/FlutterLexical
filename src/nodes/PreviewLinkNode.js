@@ -15,7 +15,7 @@ export class PreviewLinkNode extends DecoratorNode {
   }
 
   static clone(node) {
-    return new PreviewLinkNode(node.__url, node.__image, node.__text, node.__embed, node.__key);
+    return new PreviewLinkNode(node.__url, node.__imageOn, node.__textOn, node.__embedOn, node.__key);
   }
 
   constructor(url, imageOn, textOn, embedOn, key) {

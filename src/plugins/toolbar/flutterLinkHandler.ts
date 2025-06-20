@@ -1,6 +1,7 @@
-import { $createTextNode, $getRoot, $getSelection, $isRangeSelection, $isTextNode } from "lexical";
-import { $isLinkNode, LinkNode, TOGGLE_LINK_COMMAND } from "@lexical/link";
+import { $createTextNode, $getNodeByKey, $getRoot, $getSelection, $isRangeSelection, $isTextNode, TextNode } from "lexical";
+import { $createLinkNode, $isLinkNode, LinkNode, TOGGLE_LINK_COMMAND } from "@lexical/link";
 import { useCallback, useRef } from "react";
+import { PreviewLinkNode } from "../../nodes/PreviewLinkNode";
 
 function handleLinkFlow(editor) {
   editor.update(() => {
@@ -107,8 +108,53 @@ export function useFlutterLinkHandler(editor, isLinkClickedRef) {
     }
   }, [editor]);
 
+  // const updateLink = useCallback(
+  //   (url: string, text: string, isNew: boolean = false) => {
+  //     editor.update(() => {
+  //       const selection = $getSelection();
+  //       if (!$isRangeSelection(selection)) return;
+
+  //       let linkNode: LinkNode | null = null;
+  //       const nodes = selection.getNodes();
+
+  //       // Try to find link node in selection
+  //       nodes.forEach((node) => {
+  //         if ($isLinkNode(node)) {
+  //           linkNode = node;
+  //         } else if ($isTextNode(node) && $isLinkNode(node.getParent())) {
+  //           linkNode = node.getParent();
+  //         }
+  //       });
+
+  //       // If not found, use lastLinkNodeKeyRef
+  //       if (!linkNode && lastLinkNodeKeyRef.current) {
+  //         const maybeNode = editor.getEditorState().read(() => {
+  //           const node = $getRoot().getDescendantByKey(lastLinkNodeKeyRef.current!);
+  //           return $isLinkNode(node) ? node : null;
+  //         });
+  //         linkNode = maybeNode;
+  //       }
+
+  //       if (!linkNode) return;
+
+  //       // Update link text & URL
+  //       linkNode.setURL(url);
+  //       const firstChild = linkNode.getFirstChild();
+  //       if ($isTextNode(firstChild)) {
+  //         firstChild.setTextContent(text);
+  //       }
+
+  //       // Ensure cursor stays inside updated link
+  //       if ($isTextNode(firstChild)) {
+  //         selection.setTextNodeRange(firstChild, 0, firstChild, text.length);
+  //       }
+  //     });
+  //   },
+  //   [editor]
+  // );
+
   const updateLink = useCallback(
-    (url: string, text: string, isNew: boolean = false) => {
+    (url: string, text: string) => {
       editor.update(() => {
         const selection = $getSelection();
         if (!$isRangeSelection(selection)) return;
@@ -116,19 +162,16 @@ export function useFlutterLinkHandler(editor, isLinkClickedRef) {
         let linkNode: LinkNode | null = null;
         const nodes = selection.getNodes();
 
-        // Try to find link node in selection
-        nodes.forEach((node) => {
-          if ($isLinkNode(node)) {
-            linkNode = node;
-          } else if ($isTextNode(node) && $isLinkNode(node.getParent())) {
+        for (const node of nodes) {
+          if ($isLinkNode(node)) linkNode = node;
+          else if ($isTextNode(node) && $isLinkNode(node.getParent())) {
             linkNode = node.getParent();
           }
-        });
+        }
 
-        // If not found, use lastLinkNodeKeyRef
         if (!linkNode && lastLinkNodeKeyRef.current) {
           const maybeNode = editor.getEditorState().read(() => {
-            const node = $getRoot().getDescendantByKey(lastLinkNodeKeyRef.current!);
+            const node = $getNodeByKey(lastLinkNodeKeyRef.current!);
             return $isLinkNode(node) ? node : null;
           });
           linkNode = maybeNode;
@@ -136,17 +179,24 @@ export function useFlutterLinkHandler(editor, isLinkClickedRef) {
 
         if (!linkNode) return;
 
-        // Update link text & URL
-        linkNode.setURL(url);
-        const firstChild = linkNode.getFirstChild();
-        if ($isTextNode(firstChild)) {
-          firstChild.setTextContent(text);
-        }
+        // Remove old
+        const parent = linkNode.getParent();
+        const nextSibling = linkNode.getNextSibling();
+        linkNode.remove();
 
-        // Ensure cursor stays inside updated link
-        if ($isTextNode(firstChild)) {
-          selection.setTextNodeRange(firstChild, 0, firstChild, text.length);
+        // Create fresh link node
+        const newLink = $createLinkNode(url);
+        newLink.append($createTextNode(text));
+        if (parent) {
+          if (nextSibling) {
+            nextSibling.insertBefore(newLink);
+          } else {
+            parent.append(newLink);
+          }
+        } else {
+          $getRoot().append(newLink);
         }
+        selection.setTextNodeRange(newLink.getFirstChild() as TextNode, 0, newLink.getFirstChild() as TextNode, text.length);
       });
     },
     [editor]
@@ -215,12 +265,33 @@ export function useFlutterLinkHandler(editor, isLinkClickedRef) {
     }
   }, [editor]);
 
+  const addPreview = useCallback(
+    (url: string, imageOn: boolean = true, textOn: boolean = true, embedOn: boolean = false) => {
+      editor.update(() => {
+        const root = $getRoot();
+        const selection = $getSelection();
+
+        // Create new node instance with additional properties
+        const previewNode = new PreviewLinkNode(url, imageOn, textOn, embedOn);
+
+        // Insert into the editor
+        if (selection) {
+          selection.insertNodes([previewNode]);
+        } else {
+          root.append(previewNode);
+        }
+      });
+    },
+    [editor]
+  );
+
   return {
     startLinkFlow,
     insertLink,
     updateLink,
     onUnlink,
     onCloseLink,
+    addPreview,
     lastLinkNodeKeyRef,
   };
 }

@@ -62,7 +62,7 @@ export default function ToolbarPlugin() {
 
   const [markdownForEdit, setMarkdownForEdit] = useState<string>("");
 
-  const { insertLink, updateLink, onUnlink, onCloseLink, startLinkFlow } = useFlutterLinkHandler(editor, isLinkClickedRef);
+  const { insertLink, updateLink, onUnlink, onCloseLink, startLinkFlow, addPreview } = useFlutterLinkHandler(editor, isLinkClickedRef);
 
   // to restrict the length of the text in the input field
   const maxLength = Number(process.env.MAX_CHARACTERS_COUNT || 440);
@@ -163,27 +163,6 @@ export default function ToolbarPlugin() {
       )
     );
   }, [editor, updateToolbar]);
-
-  // #################
-
-  function addPreview(url: string, imageOn: boolean = true, textOn: boolean = true, embedOn: boolean = false) {
-    editor.update(() => {
-      const root = $getRoot();
-      const selection = $getSelection();
-
-      // Create new node instance with additional properties
-      const previewNode = new PreviewLinkNode(url, imageOn, textOn, embedOn);
-
-      // Insert into the editor
-      if (selection) {
-        selection.insertNodes([previewNode]);
-      } else {
-        root.append(previewNode);
-      }
-    });
-  }
-
-  // #################
 
   // toggle for markdown
   const handleMarkdownToggle = useCallback(() => {
@@ -416,6 +395,7 @@ export default function ToolbarPlugin() {
               });
               break;
             case "addPreview":
+              console.log("0000000", command.url, command.text, command.image, command.embed);
               addPreview(command.url, command.text, command.image, command.embed);
               break;
             case "insertLink":
@@ -494,6 +474,10 @@ export default function ToolbarPlugin() {
   // start to show markdown to text for edit note
 
   useEffect(() => {
+    //     const markdownForEdit = `<- [https://www.youtube.com](https://www.youtube.com){link_type:'preview',text:'off',image:'off',embed:'on'}<-
+    // <- [https://www.youtube.com](https://www.google.com){link_type:'preview',text:'on',image:'on',embed:'off'}<-`;
+    // Text [https://www.youtube.com](https://www.youtube.com){link_type:'preview',text:'off',image:'off',embed:'on'}<-\n\n`;
+
     // const markdownForEdit = `# ->Center *italic* Heading 1<-\n\n## ->Right **Bold** Heading 2->\n\n### <-Left ***bold italic*** Heading 3<-\n\n->Right **bold** Text->\n\n<-Left *italic* Text<-\n\n->Center [Google](<ln>1<\/ln>) Link ***bold italic***<-\n\n- <-Left List *italic*<-\n- ->Right List **bold**->\n- ->Center [***bold italic Link***](<ln>2<\/ln>)<-\n\n1. <-Left List *italic*<-\n2. ->Center List **bold**<-\n3. ->Right [***bold italic Link***](<ln>3<\/ln>)->\n\n> ->Center Quote *italic*<-\n\n> ->Right Quote ***bold***->\n\n> <-Left [***Bold Italic***](<ln>4<\/ln>) Link<-\n\n->Right **bold** Text->\n\n->Center *italic* Text<-\n\n<-Left ***bold italic*** Text<-\n\n->Center [Google](<ln>5<\/ln>) Link<-\n\n<- <-`;
     //     const markdownForEdit = `# ->Center *italic* Heading 1<-\n
     // ## ->Right **Bold** Heading 2->\n
@@ -584,17 +568,18 @@ export default function ToolbarPlugin() {
   return (
     <div className="toolbar" ref={toolbarRef}>
       <>
-        <button onClick={insertLink}>Insert/Remove Link</button>
+        {/* <button onClick={insertLink}>Insert/Remove Link</button>
         <button
           onClick={() => {
             updateLink("https://updated.com", "Updated Text");
           }}
         >
           Update Link
-        </button>
-        <button onClick={() => addPreview("https://www.youtube.com", false, false, false)}>Add Preview</button>
-        <button onClick={onCloseLink}>onUnlink</button>
-        <button onClick={onUnlink}>onUnlink</button>
+        </button> */}
+        <button onClick={() => addPreview("https://youtu.be/dgZqg2uH6V8?si=NxDplSJEXTwpExN7", false, false, true)}>Youtube Preview</button>
+        <button onClick={() => addPreview("https://www.google.com", true, true, false)}>Google Preview</button>
+        {/* <button onClick={onCloseLink}>onCloseLink</button>
+        <button onClick={onUnlink}>onUnlink</button> */}
       </>
     </div>
   );
