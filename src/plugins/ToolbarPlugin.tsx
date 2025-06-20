@@ -195,8 +195,6 @@ export default function ToolbarPlugin() {
         const root = $getRoot();
         // const firstChild = root.getFirstChild();
         let markdown = "";
-        // Check if content is empty
-        const isEmpty = root.getTextContent().trim().length === 0;
 
         // This must capture everything before applying alignment
         // markdown = $convertToMarkdownString(PLAYGROUND_TRANSFORMERS);
@@ -206,6 +204,9 @@ export default function ToolbarPlugin() {
         // markdown = addAlignmentMarkersToMarkdown(editor);
         markdown = exportMarkdownWithAlignment(editor);
         console.log("Final markdown with alignments", markdown);
+
+        // Check if content is empty
+        const isEmpty = markdown.replace(/(->|<-)|\s+/g, "").length === 0;
 
         // Get height
         const height = editorElement?.scrollHeight || 300;

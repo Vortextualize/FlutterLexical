@@ -78,34 +78,55 @@ export function useFlutterLinkHandler(editor, isLinkClickedRef) {
   }, [editor]);
 
   const insertLink = useCallback(() => {
-    if (!isLinkClickedRef.current) {
-      editor.dispatchCommand(TOGGLE_LINK_COMMAND, "https://");
-      editor.update(() => {
-        const selection = $getSelection();
-        if ($isRangeSelection(selection)) {
-          const node = selection.anchor.getNode();
-          let linkNode: LinkNode | null = null;
-          if ($isLinkNode(node)) {
-            linkNode = node;
-          } else if ($isTextNode(node) && $isLinkNode(node.getParent())) {
-            linkNode = node.getParent();
-          }
-          if (linkNode) {
-            const firstChild = linkNode.getFirstChild();
-            if ($isTextNode(firstChild)) {
-              const textLength = firstChild.getTextContentSize();
-              const middle = Math.floor(textLength / 2);
-              selection.setTextNodeRange(firstChild, middle, firstChild, middle);
+    editor.update(() => {
+      const selection = $getSelection();
+      if (!$isRangeSelection(selection)) return;
+
+      if (selection.isCollapsed()) {
+        // No text selected: insert a link node with default text "Link" at the cursor
+        const linkNode = $createLinkNode("https://");
+        linkNode.append($createTextNode("Link"));
+        selection.insertNodes([linkNode]);
+        // Optionally, select the text inside the new link for editing
+        const firstChild = linkNode.getFirstChild();
+        if ($isTextNode(firstChild)) {
+          selection.setTextNodeRange(firstChild, 0, firstChild, firstChild.getTextContentSize());
+        }
+        startLinkFlow();
+        return;
+      }
+
+      // Text is selected: use TOGGLE_LINK_COMMAND to wrap selection
+      if (!isLinkClickedRef.current) {
+        editor.dispatchCommand(TOGGLE_LINK_COMMAND, "https://");
+        editor.update(() => {
+          const selection = $getSelection();
+          if ($isRangeSelection(selection)) {
+            const node = selection.anchor.getNode();
+            let linkNode: LinkNode | null = null;
+            if ($isLinkNode(node)) {
+              linkNode = node;
+            } else if ($isTextNode(node) && $isLinkNode(node.getParent())) {
+              linkNode = node.getParent();
+            }
+            if (linkNode) {
+              lastLinkNodeKeyRef.current = linkNode.getKey();
+              const firstChild = linkNode.getFirstChild();
+              if ($isTextNode(firstChild)) {
+                const textLength = firstChild.getTextContentSize();
+                const middle = Math.floor(textLength / 2);
+                selection.setTextNodeRange(firstChild, middle, firstChild, middle);
+              }
             }
           }
-        }
-      });
-      startLinkFlow();
-      console.log("link is being insertLink", isLinkClickedRef.current);
-    } else {
-      editor.dispatchCommand(TOGGLE_LINK_COMMAND, null);
-      isLinkClickedRef.current = false;
-    }
+        });
+        startLinkFlow();
+        console.log("link is being insertLink", isLinkClickedRef.current);
+      } else {
+        editor.dispatchCommand(TOGGLE_LINK_COMMAND, null);
+        isLinkClickedRef.current = false;
+      }
+    });
   }, [editor]);
 
   // const updateLink = useCallback(
