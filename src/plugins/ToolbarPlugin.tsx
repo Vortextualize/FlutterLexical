@@ -57,12 +57,13 @@ export default function ToolbarPlugin() {
   const isItalicRef = useRef<boolean>(false);
   const blockTypeRef = useRef<string>("paragraph");
   const isLinkClickedRef = useRef<boolean>(false);
+  const clickedLinkTypeRef = useRef<string>("");
   const alignmentRef = useRef<string>("left");
   const toggleMarkdownRef = useRef<boolean>(false);
 
   const [markdownForEdit, setMarkdownForEdit] = useState<string>("");
 
-  const { insertLink, updateLink, onUnlink, onCloseLink, startLinkFlow, addPreview } = useFlutterLinkHandler(editor, isLinkClickedRef);
+  const { insertLink, updateLink, onUnlink, onCloseLink, startLinkFlow, addPreview } = useFlutterLinkHandler(editor, isLinkClickedRef, clickedLinkTypeRef);
 
   // to restrict the length of the text in the input field
   const maxLength = Number(process.env.MAX_CHARACTERS_COUNT || 440);
@@ -165,23 +166,37 @@ export default function ToolbarPlugin() {
   }, [editor, updateToolbar]);
 
   // toggle for markdown
+  const [isGray, setIsGray] = useState(false);
+
   const handleMarkdownToggle = useCallback(() => {
-    editor.update(() => {
-      const root = $getRoot();
-      const firstChild = root.getFirstChild();
-      if ($isCodeNode(firstChild) && firstChild.getLanguage() === "markdown") {
-        toggleMarkdownRef.current = false;
-        console.log("000000000000000000000000 aaa");
+    setIsGray((prevIsGray) => {
+      const newColor = prevIsGray ? "#ffffff" : "#f9f9f9";
 
-        $convertFromMarkdownString(firstChild.getTextContent(), PLAYGROUND_TRANSFORMERS);
-      } else {
-        console.log("000000000000000000000000 bbb");
+      // Update body color
+      document.body.style.backgroundColor = newColor;
 
-        toggleMarkdownRef.current = true;
-        const markdown = $convertToMarkdownString(PLAYGROUND_TRANSFORMERS);
-        root.clear().append($createCodeNode("markdown").append($createTextNode(markdown)));
-      }
-      root.selectEnd();
+      // Update all .editor-inner elements
+      const editors = document.querySelectorAll(".editor-inner");
+      editors.forEach((el) => {
+        (el as HTMLElement).style.backgroundColor = newColor;
+      });
+
+      editor.update(() => {
+        const root = $getRoot();
+        const firstChild = root.getFirstChild();
+        if ($isCodeNode(firstChild) && firstChild.getLanguage() === "markdown") {
+          toggleMarkdownRef.current = false;
+          // Use your custom import logic here if needed
+          $convertFromMarkdownString(firstChild.getTextContent(), PLAYGROUND_TRANSFORMERS);
+        } else {
+          toggleMarkdownRef.current = true;
+          // Use your custom export function here!
+          const markdown = exportMarkdownWithAlignment(editor);
+          root.clear().append($createCodeNode("markdown").append($createTextNode(markdown)));
+        }
+        root.selectEnd();
+      });
+      return !prevIsGray;
     });
   }, [editor]);
 
@@ -192,8 +207,6 @@ export default function ToolbarPlugin() {
     // Function to update markdown content, empty status, and focus status
     const updateMarkdownContent = () => {
       editor.update(() => {
-        const root = $getRoot();
-        // const firstChild = root.getFirstChild();
         let markdown = "";
 
         // This must capture everything before applying alignment
@@ -542,10 +555,19 @@ export default function ToolbarPlugin() {
     function handleLinkClick(event: MouseEvent) {
       let target = event.target as HTMLElement | null;
       while (target && target !== editorElement) {
+        clickedLinkTypeRef.current = target.classList.contains("preview-card-link") ? "preview" : "link";
         if (target.tagName === "A") {
           setTimeout(() => {
             startLinkFlow();
-            console.log("link is being handleLinkClick", isLinkClickedRef.current);
+            console.log("link is being handleLinkClick", clickedLinkTypeRef.current, isLinkClickedRef.current);
+          }, 0);
+          break;
+        }
+        // Handle preview links (adjust selector/class as needed)
+        if (target.classList.contains("preview-card-link")) {
+          setTimeout(() => {
+            startLinkFlow();
+            console.log("preview is being handleLinkClick", clickedLinkTypeRef.current, isLinkClickedRef.current);
           }, 0);
           break;
         }
@@ -569,6 +591,7 @@ export default function ToolbarPlugin() {
   return (
     <div className="toolbar" ref={toolbarRef}>
       <>
+        <button onClick={handleMarkdownToggle}>Markdown</button>
         <button onClick={insertLink}>Insert/Remove Link</button>
         <button
           onClick={() => {
@@ -579,8 +602,8 @@ export default function ToolbarPlugin() {
         </button>
         <button onClick={() => addPreview("https://youtu.be/dgZqg2uH6V8?si=NxDplSJEXTwpExN7", false, false, true)}>Youtube Preview</button>
         <button onClick={() => addPreview("https://www.google.com", true, true, false)}>Google Preview</button>
-        {/* <button onClick={onCloseLink}>onCloseLink</button>
-        <button onClick={onUnlink}>onUnlink</button> */}
+        {/* <button onClick={onCloseLink}>onCloseLink</button> */}
+        <button onClick={onUnlink}>onUnlink</button>
       </>
     </div>
   );

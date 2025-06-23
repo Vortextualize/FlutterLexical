@@ -70,7 +70,7 @@ export default function Editor() {
           <CodeHighlightPlugin />
           <CheckListPlugin />
           {/* <ListMaxIndentLevelPlugin maxDepth={7} /> */}
-          {floatingAnchorElem && <DraggableBlockPlugin anchorElem={floatingAnchorElem} />}
+          {/* {floatingAnchorElem && <DraggableBlockPlugin anchorElem={floatingAnchorElem} />} */}
         </div>
 
         {/* <TreeViewPlugin /> */}

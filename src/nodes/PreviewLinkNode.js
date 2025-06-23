@@ -178,3 +178,8 @@ export class PreviewLinkNode extends DecoratorNode {
     };
   }
 }
+
+// Add at the end of your file (after the class)
+export function isPreviewLinkNode(node) {
+  return node instanceof PreviewLinkNode;
+}

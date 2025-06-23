@@ -1,9 +1,9 @@
 import { $createTextNode, $getNodeByKey, $getRoot, $getSelection, $isRangeSelection, $isTextNode, TextNode } from "lexical";
 import { $createLinkNode, $isLinkNode, LinkNode, TOGGLE_LINK_COMMAND } from "@lexical/link";
 import { useCallback, useRef } from "react";
-import { PreviewLinkNode } from "../../nodes/PreviewLinkNode";
+import { PreviewLinkNode, isPreviewLinkNode } from "../../nodes/PreviewLinkNode";
 
-function handleLinkFlow(editor) {
+function handleLinkFlow(editor, clickedLinkTypeRef) {
   editor.update(() => {
     const selection = $getSelection();
 
@@ -36,14 +36,15 @@ function handleLinkFlow(editor) {
       isLinkTrue: true,
       linkUrl: finalUrl,
       linkText: finalText,
+      linkType: clickedLinkTypeRef.current,
     };
 
-    console.log("Sending message:", message);
+    console.log("Sending message:", JSON.stringify(message));
     window.MarkdownChannel.postMessage(JSON.stringify(message));
   });
 }
 
-export function useFlutterLinkHandler(editor, isLinkClickedRef) {
+export function useFlutterLinkHandler(editor, isLinkClickedRef, clickedLinkTypeRef) {
   const lastLinkNodeKeyRef = useRef<string | null>(null);
 
   // To check if user added a link with default text "Link"
@@ -73,8 +74,11 @@ export function useFlutterLinkHandler(editor, isLinkClickedRef) {
           console.log("startLinkFlow - link:", linkNode.getURL());
         }
 
-        if ($isLinkNode(node) || ($isTextNode(node) && $isLinkNode(node.getParent()))) {
-          handleLinkFlow(editor);
+        // if ($isLinkNode(node) || ($isTextNode(node) && $isLinkNode(node.getParent()))) {
+        //   handleLinkFlow(editor, clickedLinkTypeRef);
+        // }
+        if ($isLinkNode(node) || ($isTextNode(node) && $isLinkNode(node.getParent())) || isPreviewLinkNode(node) || ($isTextNode(node) && isPreviewLinkNode(node.getParent()))) {
+          handleLinkFlow(editor, clickedLinkTypeRef);
         }
         console.log("Cursor offset in node:", selection.anchor.offset, "of text node:", selection.anchor.getNode().getTextContent());
       }

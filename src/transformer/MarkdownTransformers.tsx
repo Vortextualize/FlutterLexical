@@ -8,6 +8,7 @@ import { PreviewLinkMarkdownTransformer } from "./PreviewLinkMarkdownTransformer
 export const HR: ElementTransformer = {
   dependencies: [HorizontalRuleNode],
   export: (node: LexicalNode) => {
+    console.log("Exporting HorizontalRuleNode:", node);
     return $isHorizontalRuleNode(node) ? "***" : null;
   },
   regExp: /^(---|\*\*\*|___)\s?$/,
