@@ -27,7 +27,7 @@ import { PLAYGROUND_TRANSFORMERS } from "../transformer/MarkdownTransformers.tsx
 import { useWebSocket } from "../context/WebSocketContext.tsx";
 import { handleAlignment } from "./toolbar/alignmentForEditNote.ts";
 import { LowPriority } from "./toolbar/editorPriorities.ts";
-import { addAlignmentMarkersToMarkdown, exportMarkdownWithAlignment } from "./toolbar/markdownAlignmentHelpers.ts";
+import { addAlignmentMarkersToMarkdown, exportMarkdownWithAlignment, stripAlignmentMarkers } from "./toolbar/markdownAlignmentHelpers.ts";
 import { useFlutterLinkHandler } from "./toolbar/flutterLinkHandler.ts";
 import { PreviewLinkNode } from "../nodes/PreviewLinkNode.js";
 
@@ -186,8 +186,14 @@ export default function ToolbarPlugin() {
         const firstChild = root.getFirstChild();
         if ($isCodeNode(firstChild) && firstChild.getLanguage() === "markdown") {
           toggleMarkdownRef.current = false;
-          // Use your custom import logic here if needed
-          $convertFromMarkdownString(firstChild.getTextContent(), PLAYGROUND_TRANSFORMERS);
+          // Remove {link_type:'simple'} and arrows before import!
+          const markdown = firstChild.getTextContent();
+          const cleanMarkdown = markdown.replace(/\{link_type:'simple'\}/g, "");
+          $convertFromMarkdownString(cleanMarkdown, PLAYGROUND_TRANSFORMERS);
+
+          // ✅ Apply alignment after import
+          const children = root.getChildren();
+          handleAlignment(children);
         } else {
           toggleMarkdownRef.current = true;
           // Use your custom export function here!
@@ -409,8 +415,8 @@ export default function ToolbarPlugin() {
               });
               break;
             case "addPreview":
-              console.log("0000000", command.url, command.text, command.image, command.embed);
-              addPreview(command.url, command.text, command.image, command.embed);
+              console.log("0000000", command.url, command.text, command.image, command.warning);
+              addPreview(command.url, command.text, command.image, command.embed, command.warning);
               break;
             case "insertLink":
               insertLink();
@@ -522,7 +528,11 @@ export default function ToolbarPlugin() {
       editor.update(() => {
         const root = $getRoot();
         root.clear();
-        $convertFromMarkdownString(markdownForEdit, PLAYGROUND_TRANSFORMERS);
+
+        // Remove only {link_type:'simple'} before import
+        const cleanMarkdown = markdownForEdit.replace(/\{link_type:'simple'\}/g, "");
+
+        $convertFromMarkdownString(cleanMarkdown, PLAYGROUND_TRANSFORMERS);
 
         // ✅ Append a paragraph with a space at the end
         const trailingParagraph = $createParagraphNode();
@@ -600,10 +610,17 @@ export default function ToolbarPlugin() {
         >
           Update Link
         </button>
-        <button onClick={() => addPreview("https://youtu.be/dgZqg2uH6V8?si=NxDplSJEXTwpExN7", false, false, true)}>Youtube Preview</button>
-        <button onClick={() => addPreview("https://www.google.com", true, true, false)}>Google Preview</button>
+        <button onClick={() => addPreview("https://youtu.be/dgZqg2uH6V8?si=NxDplSJEXTwpExN7", false, false, true, true)}>Youtube Preview</button>
+        <button onClick={() => addPreview("https://www.google.com", true, true, false, true)}>Google Preview</button>
         {/* <button onClick={onCloseLink}>onCloseLink</button> */}
         <button onClick={onUnlink}>onUnlink</button>
+        <button
+          onClick={() => {
+            editor.dispatchCommand(FORMAT_ELEMENT_COMMAND, "center");
+          }}
+        >
+          Center
+        </button>
       </>
     </div>
   );

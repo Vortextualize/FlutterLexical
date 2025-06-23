@@ -320,7 +320,8 @@ export function useFlutterLinkHandler(editor, isLinkClickedRef, clickedLinkTypeR
   }, [editor]);
 
   const addPreview = useCallback(
-    (url: string, imageOn: boolean = true, textOn: boolean = true, embedOn: boolean = false) => {
+    (url: string, imageOn: boolean = true, textOn: boolean = true, embedOn: boolean = false, warningOn: boolean = false) => {
+      console.log("addPreview called with URL:", url, "imageOn:", imageOn, "textOn:", textOn, "embedOn:", embedOn, "warningOn:", warningOn);
       editor.update(() => {
         const selection = $getSelection();
         if (!selection) return;
@@ -351,7 +352,7 @@ export function useFlutterLinkHandler(editor, isLinkClickedRef, clickedLinkTypeR
           const nextSibling = linkNode.getNextSibling();
           linkNode.remove();
 
-          const previewNode = new PreviewLinkNode(url, imageOn, textOn, embedOn);
+          const previewNode = new PreviewLinkNode(url, imageOn, textOn, embedOn, warningOn);
 
           if (parent) {
             if (nextSibling) {

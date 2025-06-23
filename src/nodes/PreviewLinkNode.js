@@ -107,15 +107,16 @@ export class PreviewLinkNode extends DecoratorNode {
   }
 
   static clone(node) {
-    return new PreviewLinkNode(node.__url, node.__imageOn, node.__textOn, node.__embedOn, node.__key);
+    return new PreviewLinkNode(node.__url, node.__imageOn, node.__textOn, node.__embedOn, node.__warningOn, node.__key);
   }
 
-  constructor(url, imageOn, textOn, embedOn, key) {
+  constructor(url, imageOn, textOn, embedOn, warningOn, key) {
     super(key);
     this.__url = url;
     this.__imageOn = imageOn;
     this.__textOn = textOn;
     this.__embedOn = embedOn;
+    this.__warningOn = warningOn;
   }
 
   createDOM() {
@@ -158,13 +159,23 @@ export class PreviewLinkNode extends DecoratorNode {
         <span href="#" target="_blank" rel="noopener noreferrer" className="preview-card-link">
           {this.__url}
         </span>
+        {this.__warningOn && (
+          <div className="amplification-warning">
+            <span className="warning-icon"></span>
+            {isEmbeddablePlatform(this.__url) ? (
+              <span className="warning-text">Embed not available due to your low amplification level</span>
+            ) : (
+              <span className="warning-text">Preview not available due to your low amplification level</span>
+            )}
+          </div>
+        )}
       </div>
     );
   }
 
   static importJSON(serializedNode) {
-    const { url, imageOn, textOn, embedOn } = serializedNode;
-    return new PreviewLinkNode(url, imageOn, textOn, embedOn);
+    const { url, imageOn, textOn, embedOn, warningOn } = serializedNode;
+    return new PreviewLinkNode(url, imageOn, textOn, embedOn, warningOn);
   }
 
   exportJSON() {
@@ -174,6 +185,7 @@ export class PreviewLinkNode extends DecoratorNode {
       imageOn: this.__imageOn,
       textOn: this.__textOn,
       embedOn: this.__embedOn,
+      warningOn: this.__warningOn,
       version: 1,
     };
   }

@@ -173,4 +173,12 @@ export function exportMarkdownWithAlignment(editor: any): string {
   return result.join("\n\n"); // double newlines between blocks
 }
 
+export function stripAlignmentMarkers(markdown: string): string {
+  // Remove all <-, ->, and <-
+  let result = markdown.replace(/(<-|->)/g, "");
+  // Remove all {link_type:'...'}
+  result = result.replace(/\{link_type:'simple'\}/g, "");
+  return result;
+}
+
 // ########## end add alignments to markdown ##########
