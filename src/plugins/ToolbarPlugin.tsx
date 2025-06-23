@@ -15,7 +15,6 @@ import {
   RootNode,
   $getRoot,
   $isTextNode,
-  $insertNodes,
 } from "lexical";
 import { $wrapNodes, $trimTextContentFromAnchor } from "@lexical/selection";
 import { $getNearestNodeOfType, mergeRegister } from "@lexical/utils";
@@ -27,9 +26,8 @@ import { PLAYGROUND_TRANSFORMERS } from "../transformer/MarkdownTransformers.tsx
 import { useWebSocket } from "../context/WebSocketContext.tsx";
 import { handleAlignment } from "./toolbar/alignmentForEditNote.ts";
 import { LowPriority } from "./toolbar/editorPriorities.ts";
-import { addAlignmentMarkersToMarkdown, exportMarkdownWithAlignment, stripAlignmentMarkers } from "./toolbar/markdownAlignmentHelpers.ts";
+import { exportMarkdownWithAlignment } from "./toolbar/markdownAlignmentHelpers.ts";
 import { useFlutterLinkHandler } from "./toolbar/flutterLinkHandler.ts";
-import { PreviewLinkNode } from "../nodes/PreviewLinkNode.js";
 
 declare global {
   interface Window {
