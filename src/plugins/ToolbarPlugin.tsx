@@ -492,8 +492,9 @@ export default function ToolbarPlugin() {
   // start to show markdown to text for edit note
 
   useEffect(() => {
-    //     const markdownForEdit = `<- [https://www.youtube.com](https://www.youtube.com){link_type:'preview',text:'off',image:'off',embed:'on'}<-
+    //     const markdownForEdit = `<- Text is here [Google](https://google.com){link_type:'simple'} [https://www.youtube.com](https://www.youtube.com){link_type:'preview',text:'off',image:'off',embed:'on'} ok good<-
     // <- [https://www.youtube.com](https://www.google.com){link_type:'preview',text:'on',image:'on',embed:'off'}<-`;
+
     // Text [https://www.youtube.com](https://www.youtube.com){link_type:'preview',text:'off',image:'off',embed:'on'}<-\n\n`;
 
     // const markdownForEdit = `# ->Center *italic* Heading 1<-\n\n## ->Right **Bold** Heading 2->\n\n### <-Left ***bold italic*** Heading 3<-\n\n->Right **bold** Text->\n\n<-Left *italic* Text<-\n\n->Center [Google](<ln>1<\/ln>) Link ***bold italic***<-\n\n- <-Left List *italic*<-\n- ->Right List **bold**->\n- ->Center [***bold italic Link***](<ln>2<\/ln>)<-\n\n1. <-Left List *italic*<-\n2. ->Center List **bold**<-\n3. ->Right [***bold italic Link***](<ln>3<\/ln>)->\n\n> ->Center Quote *italic*<-\n\n> ->Right Quote ***bold***->\n\n> <-Left [***Bold Italic***](<ln>4<\/ln>) Link<-\n\n->Right **bold** Text->\n\n->Center *italic* Text<-\n\n<-Left ***bold italic*** Text<-\n\n->Center [Google](<ln>5<\/ln>) Link<-\n\n<- <-`;
@@ -527,15 +528,15 @@ export default function ToolbarPlugin() {
         const root = $getRoot();
         root.clear();
 
-        // Remove only {link_type:'simple'} before import
+        // Remove only {link_type:'simple'} before import and keep preview for Transformer
         const cleanMarkdown = markdownForEdit.replace(/\{link_type:'simple'\}/g, "");
 
         $convertFromMarkdownString(cleanMarkdown, PLAYGROUND_TRANSFORMERS);
 
         // ✅ Append a paragraph with a space at the end
-        const trailingParagraph = $createParagraphNode();
-        trailingParagraph.append($createTextNode(" "));
-        root.append(trailingParagraph);
+        // const trailingParagraph = $createParagraphNode();
+        // trailingParagraph.append($createTextNode(" "));
+        // root.append(trailingParagraph);
 
         // ✅ Apply alignment
         const children = root.getChildren();
@@ -608,8 +609,8 @@ export default function ToolbarPlugin() {
         >
           Update Link
         </button>
-        <button onClick={() => addPreview("https://youtu.be/dgZqg2uH6V8?si=NxDplSJEXTwpExN7", false, false, true, true)}>Youtube Preview</button>
-        <button onClick={() => addPreview("https://www.google.com", true, true, false, true)}>Google Preview</button>
+        <button onClick={() => addPreview("https://youtu.be/dgZqg2uH6V8?si=NxDplSJEXTwpExN7", false, false, true, false)}>Youtube Preview</button>
+        <button onClick={() => addPreview("https://www.google.com", true, true, false, false)}>Google Preview</button>
         {/* <button onClick={onCloseLink}>onCloseLink</button> */}
         <button onClick={onUnlink}>onUnlink</button>
         <button

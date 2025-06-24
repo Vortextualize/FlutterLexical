@@ -169,7 +169,6 @@ h1 {
   display: inline-block;
   pointer-events: none;
   margin: 0.5rem 0;
-  margin-left: 25px;
 }
 
 .editor-text-bold {
@@ -255,7 +254,6 @@ h1 {
   tab-size: 1;
   outline: 0;
   padding: 15px 10px;
-  padding-left: 30px;
   caret-color: #444444;
   color: #444444;
 }
@@ -357,8 +355,8 @@ pre::-webkit-scrollbar-thumb {
 }
 
 .toolbar {
-  display: flex;
-  /* display: none; */
+  /* display: flex; */
+  display: none;
   background: #fff;
   border-top-left-radius: 10px;
   border-top-right-radius: 10px;
@@ -864,48 +862,6 @@ i.markdown {
 }
 
 /* Base Editor Styles */
-
-/* Draggable Block Styles */
-.draggable-block-menu {
-  position: absolute;
-  left: 0;
-  top: 0;
-  opacity: 0;
-  background-color: transparent;
-  cursor: grab;
-  z-index: 1;
-  transition: opacity 0.2s ease-in-out;
-}
-
-.draggable-block-menu:hover {
-  opacity: 1 !important;
-}
-
-.draggable-block-menu .icon {
-  width: 20px;
-  height: 20px;
-  display: block;
-  background-color: #666;
-  mask-image: url("./images/icons/drag-image.svg");
-  -webkit-mask-image: url("./images/icons/drag-image.svg");
-  mask-repeat: no-repeat;
-  -webkit-mask-repeat: no-repeat;
-  mask-size: 15px 15px;
-  -webkit-mask-size: 15px 15px;
-  mask-position: center;
-  -webkit-mask-position: center;
-}
-
-.draggable-block-target-line {
-  position: absolute;
-  left: 0;
-  top: 0;
-  height: 4px;
-  background-color: rgb(100, 100, 255);
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.2s ease-in-out;
-}
 
 .editor-hashtag {
   background-color: rgba(88, 144, 255, 0.15);

@@ -33,7 +33,7 @@ const ExampleTheme = {
     underlineStrikethrough: "editor-text-underlineStrikethrough",
     code: "editor-text-code",
   },
-  code: "editor-code",
+  // code: "editor-code",
   codeHighlight: {
     atrule: "editor-tokenAttr",
     attr: "editor-tokenAttr",

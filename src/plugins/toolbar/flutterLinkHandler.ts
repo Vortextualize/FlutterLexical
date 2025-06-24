@@ -148,51 +148,6 @@ export function useFlutterLinkHandler(editor, isLinkClickedRef, clickedLinkTypeR
     });
   }, [editor]);
 
-  // const updateLink = useCallback(
-  //   (url: string, text: string, isNew: boolean = false) => {
-  //     editor.update(() => {
-  //       const selection = $getSelection();
-  //       if (!$isRangeSelection(selection)) return;
-
-  //       let linkNode: LinkNode | null = null;
-  //       const nodes = selection.getNodes();
-
-  //       // Try to find link node in selection
-  //       nodes.forEach((node) => {
-  //         if ($isLinkNode(node)) {
-  //           linkNode = node;
-  //         } else if ($isTextNode(node) && $isLinkNode(node.getParent())) {
-  //           linkNode = node.getParent();
-  //         }
-  //       });
-
-  //       // If not found, use lastLinkNodeKeyRef
-  //       if (!linkNode && lastLinkNodeKeyRef.current) {
-  //         const maybeNode = editor.getEditorState().read(() => {
-  //           const node = $getRoot().getDescendantByKey(lastLinkNodeKeyRef.current!);
-  //           return $isLinkNode(node) ? node : null;
-  //         });
-  //         linkNode = maybeNode;
-  //       }
-
-  //       if (!linkNode) return;
-
-  //       // Update link text & URL
-  //       linkNode.setURL(url);
-  //       const firstChild = linkNode.getFirstChild();
-  //       if ($isTextNode(firstChild)) {
-  //         firstChild.setTextContent(text);
-  //       }
-
-  //       // Ensure cursor stays inside updated link
-  //       if ($isTextNode(firstChild)) {
-  //         selection.setTextNodeRange(firstChild, 0, firstChild, text.length);
-  //       }
-  //     });
-  //   },
-  //   [editor]
-  // );
-
   const updateLink = useCallback(
     (url: string, text: string) => {
       editor.update(() => {

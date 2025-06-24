@@ -82,6 +82,10 @@ const embeddableDomains = [
   "bsky.social",
   "news.network",
   "yourdomain.xyz",
+
+  // Twitter
+  "twitter.com",
+  "x.com",
 ];
 
 // Utility to extract the domain from a URL
