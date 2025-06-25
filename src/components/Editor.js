@@ -1,4 +1,3 @@
-import { useState } from "react";
 import ExampleTheme from "../themes/ExampleTheme.tsx";
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";

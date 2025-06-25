@@ -1,4 +1,4 @@
-import { $createTextNode, $getNodeByKey, $getRoot, $getSelection, $isRangeSelection, $isTextNode, TextNode } from "lexical";
+import { $createParagraphNode, $createTextNode, $getNodeByKey, $getRoot, $getSelection, $isRangeSelection, $isTextNode, TextNode } from "lexical";
 import { $createLinkNode, $isLinkNode, LinkNode, TOGGLE_LINK_COMMAND } from "@lexical/link";
 import { useCallback, useRef } from "react";
 import { PreviewLinkNode, isPreviewLinkNode } from "../../nodes/PreviewLinkNode";
@@ -319,8 +319,19 @@ export function useFlutterLinkHandler(editor, isLinkClickedRef, clickedLinkTypeR
             $getRoot().append(previewNode);
           }
 
+          // Add a new paragraph node after the preview
+          const paragraph = $createParagraphNode();
+          paragraph.append($createTextNode("")); // empty paragraph (acts like \n\n)
+          previewNode.insertAfter(paragraph);
+
           // Clear the ref so future unlink/close does NOT remove the node
           lastDefaultLinkNodeKeyRef.current = null;
+
+          // After inserting the preview node, set cursor at end
+          editor.update(() => {
+            const root = $getRoot();
+            root.selectEnd();
+          });
         }
         // If not on a link, do nothing
       });
