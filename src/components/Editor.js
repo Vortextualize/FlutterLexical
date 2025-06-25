@@ -18,7 +18,6 @@ import { HashtagPlugin } from "@lexical/react/LexicalHashtagPlugin";
 
 // import ActionsPlugin from "../plugins/ActionsPlugin.tsx";
 import CodeHighlightPlugin from "../plugins/CodeHighlightPlugin.tsx";
-import DraggableBlockPlugin from "../plugins/DraggableBlockPlugin.tsx";
 import { HistoryPlugin } from "@lexical/react/LexicalHistoryPlugin";
 // import TreeViewPlugin from "../plugins/TreeViewPlugin.tsx";
 import { LexicalErrorBoundary } from "@lexical/react/LexicalErrorBoundary";
@@ -45,19 +44,11 @@ const editorConfig = {
 };
 
 export default function Editor() {
-  const [floatingAnchorElem, setFloatingAnchorElem] = useState(null);
-
-  const onRef = (_floatingAnchorElem) => {
-    if (_floatingAnchorElem !== null) {
-      setFloatingAnchorElem(_floatingAnchorElem);
-    }
-  };
-
   return (
     <LexicalComposer initialConfig={editorConfig}>
       <div className="editor-container">
         <ToolbarPlugin />
-        <div className="editor-inner" ref={onRef}>
+        <div className="editor-inner">
           <RichTextPlugin contentEditable={<ContentEditable className="editor-input" />} placeholder={<Placeholder />} ErrorBoundary={LexicalErrorBoundary} />
           <HistoryPlugin />
           <AutoFocusPlugin />
@@ -65,11 +56,9 @@ export default function Editor() {
           <LinkPlugin />
           <PlaygroundAutoLinkPlugin />
           <MarkdownShortcutPlugin transformers={TRANSFORMERS} />
-          {/* <MarkdownShortcutPlugin transformers={[...TRANSFORMERS, PreviewLinkMarkdownTransformer]} /> */}
           <CodeHighlightPlugin />
           <CheckListPlugin />
           {/* <ListMaxIndentLevelPlugin maxDepth={7} /> */}
-          {/* {floatingAnchorElem && <DraggableBlockPlugin anchorElem={floatingAnchorElem} />} */}
         </div>
 
         {/* <TreeViewPlugin /> */}
