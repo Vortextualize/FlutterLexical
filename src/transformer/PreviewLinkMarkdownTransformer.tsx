@@ -34,8 +34,7 @@ export const PreviewLinkMarkdownTransformer: ElementTransformer = {
 
     parentNode.remove();
 
-    const previewPara = $createParagraphNode();
-    previewPara.append(new PreviewLinkNode(url, previewOptions.imageOn, previewOptions.textOn, previewOptions.embedOn, previewOptions.warningOn));
-    grandParent.append(previewPara);
+    // Append PreviewLinkNode directly as a top-level node
+    grandParent.append(new PreviewLinkNode(url, previewOptions.imageOn, previewOptions.textOn, previewOptions.embedOn, previewOptions.warningOn));
   },
 };

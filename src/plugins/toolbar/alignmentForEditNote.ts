@@ -1,6 +1,7 @@
 import { $isHeadingNode, $isQuoteNode } from "@lexical/rich-text";
 import { $createTextNode, $isElementNode, $isParagraphNode, $isTextNode } from "lexical";
 import { $isListNode } from "@lexical/list";
+import { PreviewLinkNode } from "../../nodes/PreviewLinkNode";
 
 function cleanAndApplyAlignment(node) {
   const children = node.getChildren();
@@ -84,4 +85,56 @@ function handleAlignment(nodes) {
   });
 }
 
-export { cleanAndApplyAlignment, cleanArrows, handleAlignment };
+function parsePreviewOptions(previewTag: string) {
+  // Example: {link_type:'preview',text:'on',image:'on',embed:'off'}
+  return {
+    textOn: /text:'on'/.test(previewTag),
+    imageOn: /image:'on'/.test(previewTag),
+    embedOn: /embed:'on'/.test(previewTag),
+    warningOn: /warning:'on'/.test(previewTag),
+  };
+}
+
+function replacePreviewLinksWithPlaceholder(nodes) {
+  nodes.forEach((node) => {
+    if (!$isParagraphNode(node)) return;
+
+    const text = node.getTextContent();
+    // Find the preview link pattern
+    const regex = /(https?:\/\/[^\s{}]+)\{link_type:'preview'[^}]*\}/g;
+    let match;
+    let lastIndex = 0;
+    const newNodes: (ReturnType<typeof $createTextNode> | PreviewLinkNode)[] = [];
+
+    while ((match = regex.exec(text)) !== null) {
+      const [fullMatch, url] = match;
+      const start = match.index;
+      const end = regex.lastIndex;
+
+      // Text before the preview link
+      if (start > lastIndex) {
+        newNodes.push($createTextNode(text.slice(lastIndex, start)));
+      }
+
+      // Parse preview options
+      const options = parsePreviewOptions(fullMatch.slice(url.length));
+      // Insert PreviewLinkNode
+      newNodes.push(new PreviewLinkNode(url, options.imageOn, options.textOn, options.embedOn, options.warningOn));
+
+      lastIndex = end;
+    }
+
+    // Text after the last preview link
+    if (lastIndex < text.length) {
+      newNodes.push($createTextNode(text.slice(lastIndex)));
+    }
+
+    // Replace all children with new nodes
+    if (newNodes.length > 0) {
+      node.clear();
+      newNodes.forEach((n) => node.append(n));
+    }
+  });
+}
+
+export { cleanAndApplyAlignment, cleanArrows, handleAlignment, replacePreviewLinksWithPlaceholder };

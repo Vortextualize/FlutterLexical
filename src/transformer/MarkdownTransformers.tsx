@@ -3,7 +3,6 @@ import type { LexicalNode } from "lexical";
 
 import { ELEMENT_TRANSFORMERS, TEXT_FORMAT_TRANSFORMERS, TEXT_MATCH_TRANSFORMERS } from "@lexical/markdown";
 import { $createHorizontalRuleNode, $isHorizontalRuleNode, HorizontalRuleNode } from "@lexical/react/LexicalHorizontalRuleNode";
-import { PreviewLinkMarkdownTransformer } from "./PreviewLinkMarkdownTransformer.tsx";
 
 export const HR: ElementTransformer = {
   dependencies: [HorizontalRuleNode],
@@ -27,4 +26,4 @@ export const HR: ElementTransformer = {
   type: "element",
 };
 
-export const PLAYGROUND_TRANSFORMERS: Array<Transformer> = [HR, PreviewLinkMarkdownTransformer, ...ELEMENT_TRANSFORMERS, ...TEXT_FORMAT_TRANSFORMERS, ...TEXT_MATCH_TRANSFORMERS];
+export const PLAYGROUND_TRANSFORMERS: Array<Transformer> = [HR, ...ELEMENT_TRANSFORMERS, ...TEXT_FORMAT_TRANSFORMERS, ...TEXT_MATCH_TRANSFORMERS];

@@ -27,7 +27,6 @@ import { MentionNode } from "../nodes/MentionNode.ts";
 import MentionsPlugin from "../plugins/MentionsPlugin.tsx";
 import { CheckListPlugin } from "@lexical/react/LexicalCheckListPlugin";
 import { PreviewLinkNode } from "../nodes/PreviewLinkNode.js";
-import { PreviewLinkMarkdownTransformer } from "../transformer/PreviewLinkMarkdownTransformer.tsx";
 // import prepopulatedText from "./SampleText.tsx";
 
 function Placeholder() {
@@ -65,8 +64,8 @@ export default function Editor() {
           <ListPlugin />
           <LinkPlugin />
           <PlaygroundAutoLinkPlugin />
-          {/* <MarkdownShortcutPlugin transformers={TRANSFORMERS} /> */}
-          <MarkdownShortcutPlugin transformers={[...TRANSFORMERS, PreviewLinkMarkdownTransformer]} />
+          <MarkdownShortcutPlugin transformers={TRANSFORMERS} />
+          {/* <MarkdownShortcutPlugin transformers={[...TRANSFORMERS, PreviewLinkMarkdownTransformer]} /> */}
           <CodeHighlightPlugin />
           <CheckListPlugin />
           {/* <ListMaxIndentLevelPlugin maxDepth={7} /> */}

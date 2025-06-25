@@ -24,7 +24,7 @@ import { $createCodeNode, $isCodeNode } from "@lexical/code";
 import { $convertFromMarkdownString, $convertToMarkdownString } from "@lexical/markdown";
 import { PLAYGROUND_TRANSFORMERS } from "../transformer/MarkdownTransformers.tsx";
 import { useWebSocket } from "../context/WebSocketContext.tsx";
-import { handleAlignment } from "./toolbar/alignmentForEditNote.ts";
+import { handleAlignment, replacePreviewLinksWithPlaceholder } from "./toolbar/alignmentForEditNote.ts";
 import { LowPriority } from "./toolbar/editorPriorities.ts";
 import { exportMarkdownWithAlignment } from "./toolbar/markdownAlignmentHelpers.ts";
 import { useFlutterLinkHandler } from "./toolbar/flutterLinkHandler.ts";
@@ -186,11 +186,18 @@ export default function ToolbarPlugin() {
           toggleMarkdownRef.current = false;
           // Remove {link_type:'simple'} and arrows before import!
           const markdown = firstChild.getTextContent();
+
+          // removing simple but keeping preview links to manage it for preview later on
           const cleanMarkdown = markdown.replace(/\{link_type:'simple'\}/g, "");
           $convertFromMarkdownString(cleanMarkdown, PLAYGROUND_TRANSFORMERS);
 
           // ✅ Apply alignment after import
           const children = root.getChildren();
+
+          // This will clean up the preview links from text
+          replacePreviewLinksWithPlaceholder(children);
+
+          // // This will clean up the text and apply alignment
           handleAlignment(children);
         } else {
           toggleMarkdownRef.current = true;
@@ -492,8 +499,7 @@ export default function ToolbarPlugin() {
   // start to show markdown to text for edit note
 
   useEffect(() => {
-    //     const markdownForEdit = `<- Text is here [Google](https://google.com){link_type:'simple'} [https://www.youtube.com](https://www.youtube.com){link_type:'preview',text:'off',image:'off',embed:'on'} ok good<-
-    // <- [https://www.youtube.com](https://www.google.com){link_type:'preview',text:'on',image:'on',embed:'off'}<-`;
+    const markdownForEdit = `<-Text is here [Google](https://google.com){link_type:'simple'} [https://www.youtube.com](https://www.youtube.com){link_type:'preview',text:'off',image:'off',embed:'on'} ok good<-\n\n<-Hello [https://www.youtube.com](https://www.google.com){link_type:'preview',text:'on',image:'on',embed:'off'} [https://www.youtube.com](https://www.youtube.com){link_type:'preview',text:'on',image:'on',embed:'off'} Bye<-`;
 
     // Text [https://www.youtube.com](https://www.youtube.com){link_type:'preview',text:'off',image:'off',embed:'on'}<-\n\n`;
 
@@ -533,13 +539,13 @@ export default function ToolbarPlugin() {
 
         $convertFromMarkdownString(cleanMarkdown, PLAYGROUND_TRANSFORMERS);
 
-        // ✅ Append a paragraph with a space at the end
-        // const trailingParagraph = $createParagraphNode();
-        // trailingParagraph.append($createTextNode(" "));
-        // root.append(trailingParagraph);
-
         // ✅ Apply alignment
         const children = root.getChildren();
+
+        // This will clean up the preview links from text
+        replacePreviewLinksWithPlaceholder(children);
+
+        // // This will clean up the text and apply alignment
         handleAlignment(children);
 
         const selection = $getSelection();
